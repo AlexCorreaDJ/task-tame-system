@@ -9,7 +9,7 @@ import { BookOpen, Plus, FileText, Edit, Upload, File } from "lucide-react";
 import { useBooks } from "@/hooks/useBooks";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Bell } from "lucide-react";
-import { ReminderManager } from "@/components/reminder-manager";
+import { ReminderManager } from "@/components/ReminderManager";
 
 export const BookTracker = () => {
   const { books, addBook, addPdf, updateBook, updateProgress } = useBooks();
