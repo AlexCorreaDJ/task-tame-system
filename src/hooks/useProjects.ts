@@ -1,6 +1,15 @@
 
 import { useLocalStorage } from './useLocalStorage';
 
+export interface ProjectFile {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  url: string;
+  uploadedAt: string;
+}
+
 export interface Project {
   id: string;
   title: string;
@@ -9,6 +18,7 @@ export interface Project {
   category: string;
   deadline?: string;
   notes: string;
+  files: ProjectFile[];
   createdAt: string;
 }
 
@@ -22,6 +32,7 @@ export const useProjects = () => {
       category: 'Desenvolvimento',
       deadline: '2024-02-15',
       notes: 'Foco em interface simples e clara. Usar cores para diferenciação de prioridades.',
+      files: [],
       createdAt: new Date().toISOString()
     },
     {
@@ -31,14 +42,16 @@ export const useProjects = () => {
       status: 'planning',
       category: 'Estudos',
       notes: 'Começar com useReducer e useContext',
+      files: [],
       createdAt: new Date().toISOString()
     }
   ]);
 
-  const addProject = (projectData: Omit<Project, 'id' | 'createdAt'>) => {
+  const addProject = (projectData: Omit<Project, 'id' | 'createdAt' | 'files'>) => {
     const newProject: Project = {
       ...projectData,
       id: Date.now().toString(),
+      files: [],
       createdAt: new Date().toISOString()
     };
     setProjects(prev => [...prev, newProject]);
@@ -55,10 +68,38 @@ export const useProjects = () => {
     setProjects(prev => prev.filter(project => project.id !== id));
   };
 
+  const addFileToProject = (projectId: string, file: File) => {
+    const fileUrl = URL.createObjectURL(file);
+    const projectFile: ProjectFile = {
+      id: Date.now().toString(),
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      url: fileUrl,
+      uploadedAt: new Date().toISOString()
+    };
+
+    setProjects(prev => prev.map(project => 
+      project.id === projectId 
+        ? { ...project, files: [...project.files, projectFile] }
+        : project
+    ));
+  };
+
+  const removeFileFromProject = (projectId: string, fileId: string) => {
+    setProjects(prev => prev.map(project => 
+      project.id === projectId 
+        ? { ...project, files: project.files.filter(f => f.id !== fileId) }
+        : project
+    ));
+  };
+
   return {
     projects,
     addProject,
     updateProject,
-    deleteProject
+    deleteProject,
+    addFileToProject,
+    removeFileFromProject
   };
 };

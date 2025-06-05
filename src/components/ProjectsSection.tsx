@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,12 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FolderOpen, Plus, Calendar, Target, Lightbulb, NotebookPen } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { FolderOpen, Plus, Calendar, Target, Lightbulb, NotebookPen, FileText, Upload } from "lucide-react";
 import { useProjects, Project } from "@/hooks/useProjects";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { ProjectFileManager } from "@/components/ProjectFileManager";
 
 export const ProjectsSection = () => {
-  const { projects, addProject, updateProject } = useProjects();
+  const { projects, addProject, updateProject, addFileToProject, removeFileFromProject } = useProjects();
   const [notes, setNotes] = useLocalStorage('focusflow-project-notes', '');
   const [showAddForm, setShowAddForm] = useState(false);
   const [newProject, setNewProject] = useState({
@@ -202,18 +205,51 @@ export const ProjectsSection = () => {
                           <p className="text-sm text-gray-700">{project.notes}</p>
                         </div>
                       )}
+
+                      {/* Files indicator */}
+                      {project.files && project.files.length > 0 && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <FileText className="h-4 w-4" />
+                          <span>{project.files.length} arquivo(s)</span>
+                        </div>
+                      )}
                       
-                      <Select value={project.status} onValueChange={(value: Project['status']) => updateProjectStatus(project.id, value)}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="idea">💡 Ideia</SelectItem>
-                          <SelectItem value="planning">📋 Planejamento</SelectItem>
-                          <SelectItem value="in-progress">🚧 Em Andamento</SelectItem>
-                          <SelectItem value="completed">✅ Concluído</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex gap-2">
+                        <Select value={project.status} onValueChange={(value: Project['status']) => updateProjectStatus(project.id, value)}>
+                          <SelectTrigger className="flex-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="idea">💡 Ideia</SelectItem>
+                            <SelectItem value="planning">📋 Planejamento</SelectItem>
+                            <SelectItem value="in-progress">🚧 Em Andamento</SelectItem>
+                            <SelectItem value="completed">✅ Concluído</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        {/* Files Dialog */}
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <Upload className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle className="flex items-center gap-2">
+                                <FileText className="h-5 w-5" />
+                                Arquivos do Projeto: {project.title}
+                              </DialogTitle>
+                            </DialogHeader>
+                            <ProjectFileManager
+                              projectId={project.id}
+                              files={project.files || []}
+                              onAddFile={addFileToProject}
+                              onRemoveFile={removeFileFromProject}
+                            />
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
