@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Plus, Calendar as CalendarIcon, Clock, Trash2, Bell, Gift, Users, MapPin } from "lucide-react";
 import { useCalendarEvents, CalendarEvent } from "@/hooks/useCalendarEvents";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import { cn } from "@/lib/utils";
 
 export const CalendarManager = () => {
@@ -29,10 +29,20 @@ export const CalendarManager = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showAddForm, setShowAddForm] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState(false);
+  
+  // Safe date formatting function
+  const safeFormat = (date: Date | string, formatStr: string) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    if (!isValid(dateObj)) {
+      return '';
+    }
+    return format(dateObj, formatStr);
+  };
+  
   const [newEvent, setNewEvent] = useState({
     title: '',
     description: '',
-    date: format(new Date(), 'yyyy-MM-dd'),
+    date: safeFormat(new Date(), 'yyyy-MM-dd'),
     time: '',
     type: 'other' as CalendarEvent['type'],
     notifyBefore: 15,
@@ -72,7 +82,7 @@ export const CalendarManager = () => {
     setNewEvent({ 
       title: '', 
       description: '', 
-      date: format(new Date(), 'yyyy-MM-dd'), 
+      date: safeFormat(new Date(), 'yyyy-MM-dd'), 
       time: '', 
       type: 'other',
       notifyBefore: 15,
@@ -106,10 +116,13 @@ export const CalendarManager = () => {
     other: 'Outro'
   };
 
-  const selectedDateEvents = getEventsForDate(format(selectedDate, 'yyyy-MM-dd'));
+  const selectedDateEvents = getEventsForDate(safeFormat(selectedDate, 'yyyy-MM-dd'));
   const upcomingEvents = getUpcomingEvents(7);
 
-  const eventDates = events.map(event => new Date(event.date));
+  // Filter out events with invalid dates before creating Date objects
+  const eventDates = events
+    .filter(event => event.date && isValid(new Date(event.date)))
+    .map(event => new Date(event.date));
 
   return (
     <div className="space-y-6">
@@ -268,7 +281,7 @@ export const CalendarManager = () => {
         <Card className="bg-white/70 backdrop-blur-sm border-gray-200">
           <CardHeader>
             <CardTitle className="text-lg text-gray-700">
-              Eventos - {format(selectedDate, 'dd/MM/yyyy')}
+              Eventos - {safeFormat(selectedDate, 'dd/MM/yyyy')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -341,7 +354,7 @@ export const CalendarManager = () => {
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="bg-gray-100 text-gray-700">
-                          {format(new Date(event.date), 'dd/MM')}
+                          {safeFormat(new Date(event.date), 'dd/MM')}
                         </Badge>
                         <Badge variant="outline" className="bg-blue-100 text-blue-700">
                           <Clock className="h-3 w-3 mr-1" />
