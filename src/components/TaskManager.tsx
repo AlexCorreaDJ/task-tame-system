@@ -8,42 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Clock, CheckCircle, Circle, Trash2 } from "lucide-react";
-
-interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  priority: 'high' | 'medium' | 'low';
-  estimatedTime: string;
-  completed: boolean;
-}
+import { useTasks, Task } from "@/hooks/useTasks";
 
 export const TaskManager = () => {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: '1',
-      title: 'Estudar para prova de matemática',
-      description: 'Revisar capítulos 5-7 do livro de cálculo',
-      priority: 'high',
-      estimatedTime: '2h',
-      completed: false
-    },
-    {
-      id: '2',
-      title: 'Fazer compras do mês',
-      priority: 'medium',
-      estimatedTime: '1h',
-      completed: false
-    },
-    {
-      id: '3',
-      title: 'Organizar mesa de estudos',
-      priority: 'low',
-      estimatedTime: '30min',
-      completed: true
-    }
-  ]);
-
+  const { tasks, addTask, deleteTask, toggleTask } = useTasks();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTask, setNewTask] = useState({
     title: '',
@@ -64,31 +32,18 @@ export const TaskManager = () => {
     low: 'bg-yellow-400'
   };
 
-  const toggleTask = (id: string) => {
-    setTasks(tasks.map(task => 
-      task.id === id ? { ...task, completed: !task.completed } : task
-    ));
-  };
-
-  const addTask = () => {
+  const handleAddTask = () => {
     if (!newTask.title) return;
     
-    const task: Task = {
-      id: Date.now().toString(),
+    addTask({
       title: newTask.title,
       description: newTask.description,
       priority: newTask.priority,
-      estimatedTime: newTask.estimatedTime,
-      completed: false
-    };
+      estimatedTime: newTask.estimatedTime
+    });
 
-    setTasks([...tasks, task]);
     setNewTask({ title: '', description: '', priority: 'medium', estimatedTime: '' });
     setShowAddForm(false);
-  };
-
-  const deleteTask = (id: string) => {
-    setTasks(tasks.filter(task => task.id !== id));
   };
 
   const pendingTasks = tasks.filter(task => !task.completed);
@@ -143,7 +98,7 @@ export const TaskManager = () => {
                 />
               </div>
               <div className="flex gap-2">
-                <Button onClick={addTask} className="bg-green-600 hover:bg-green-700">
+                <Button onClick={handleAddTask} className="bg-green-600 hover:bg-green-700">
                   Adicionar Tarefa
                 </Button>
                 <Button variant="outline" onClick={() => setShowAddForm(false)}>

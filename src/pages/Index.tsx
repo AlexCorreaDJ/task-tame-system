@@ -10,11 +10,18 @@ import { TaskManager } from "@/components/TaskManager";
 import { PomodoroTimer } from "@/components/PomodoroTimer";
 import { BookTracker } from "@/components/BookTracker";
 import { ProjectsSection } from "@/components/ProjectsSection";
+import { useTasks } from "@/hooks/useTasks";
+import { usePomodoro } from "@/hooks/usePomodoro";
+import { useBooks } from "@/hooks/useBooks";
 
 const Index = () => {
-  const [activePomodoro, setActivePomodoro] = useState(false);
-  const [completedTasks, setCompletedTasks] = useState(3);
-  const [totalTasks, setTotalTasks] = useState(8);
+  const { tasks } = useTasks();
+  const { stats } = usePomodoro();
+  const { books } = useBooks();
+  
+  const completedTasks = tasks.filter(task => task.completed).length;
+  const totalTasks = tasks.length;
+  const pagesReadToday = books.reduce((total, book) => total + book.currentPage, 0);
 
   const today = new Date().toLocaleDateString('pt-BR', { 
     weekday: 'long', 
@@ -37,7 +44,9 @@ const Index = () => {
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                 {completedTasks}/{totalTasks} tarefas
               </Badge>
-              <Progress value={(completedTasks / totalTasks) * 100} className="w-24" />
+              {totalTasks > 0 && (
+                <Progress value={(completedTasks / totalTasks) * 100} className="w-24" />
+              )}
             </div>
           </div>
         </div>
@@ -86,11 +95,11 @@ const Index = () => {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Páginas lidas</span>
-                    <Badge className="bg-blue-100 text-blue-700">24</Badge>
+                    <Badge className="bg-blue-100 text-blue-700">{pagesReadToday}</Badge>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Pomodoros hoje</span>
-                    <Badge className="bg-purple-100 text-purple-700">5</Badge>
+                    <Badge className="bg-purple-100 text-purple-700">{stats.completedPomodoros}</Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -117,18 +126,15 @@ const Index = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex items-center gap-3 p-2 bg-red-50 rounded-lg">
-                    <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                    <span className="text-sm">Estudar para prova de matemática</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-2 bg-orange-50 rounded-lg">
-                    <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
-                    <span className="text-sm">Terminar relatório do projeto</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-2 bg-yellow-50 rounded-lg">
-                    <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                    <span className="text-sm">Revisar anotações da aula</span>
-                  </div>
+                  {tasks.filter(task => task.priority === 'high' && !task.completed).slice(0, 3).map(task => (
+                    <div key={task.id} className="flex items-center gap-3 p-2 bg-red-50 rounded-lg">
+                      <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+                      <span className="text-sm">{task.title}</span>
+                    </div>
+                  ))}
+                  {tasks.filter(task => task.priority === 'high' && !task.completed).length === 0 && (
+                    <p className="text-sm text-gray-500 text-center py-4">Nenhuma tarefa de alta prioridade</p>
+                  )}
                 </CardContent>
               </Card>
             </div>

@@ -7,38 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FolderOpen, Plus, Calendar, Target, Lightbulb } from "lucide-react";
-
-interface Project {
-  id: string;
-  title: string;
-  description: string;
-  status: 'idea' | 'planning' | 'in-progress' | 'completed';
-  category: string;
-  deadline?: string;
-  notes: string;
-}
+import { useProjects, Project } from "@/hooks/useProjects";
 
 export const ProjectsSection = () => {
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: '1',
-      title: 'App de Produtividade para TDAH',
-      description: 'Desenvolver um aplicativo focado em ajudar pessoas com TDAH a se organizarem melhor',
-      status: 'in-progress',
-      category: 'Desenvolvimento',
-      deadline: '2024-02-15',
-      notes: 'Foco em interface simples e clara. Usar cores para diferenciação de prioridades.'
-    },
-    {
-      id: '2',
-      title: 'Curso de React Avançado',
-      description: 'Estudar hooks avançados, context API e performance optimization',
-      status: 'planning',
-      category: 'Estudos',
-      notes: 'Começar com useReducer e useContext'
-    }
-  ]);
-
+  const { projects, addProject, updateProject } = useProjects();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newProject, setNewProject] = useState({
     title: '',
@@ -56,28 +28,24 @@ export const ProjectsSection = () => {
     completed: { label: 'Concluído', color: 'bg-green-100 text-green-700 border-green-200', icon: Target }
   };
 
-  const addProject = () => {
+  const handleAddProject = () => {
     if (!newProject.title || !newProject.description) return;
     
-    const project: Project = {
-      id: Date.now().toString(),
+    addProject({
       title: newProject.title,
       description: newProject.description,
       status: newProject.status,
       category: newProject.category,
       deadline: newProject.deadline,
       notes: newProject.notes
-    };
+    });
 
-    setProjects([...projects, project]);
     setNewProject({ title: '', description: '', status: 'idea', category: '', deadline: '', notes: '' });
     setShowAddForm(false);
   };
 
   const updateProjectStatus = (id: string, status: Project['status']) => {
-    setProjects(projects.map(project => 
-      project.id === id ? { ...project, status } : project
-    ));
+    updateProject(id, { status });
   };
 
   const groupedProjects = projects.reduce((acc, project) => {
@@ -150,7 +118,7 @@ export const ProjectsSection = () => {
                 rows={2}
               />
               <div className="flex gap-2">
-                <Button onClick={addProject} className="bg-purple-600 hover:bg-purple-700">
+                <Button onClick={handleAddProject} className="bg-purple-600 hover:bg-purple-700">
                   Criar Projeto
                 </Button>
                 <Button variant="outline" onClick={() => setShowAddForm(false)}>

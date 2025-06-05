@@ -4,14 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { PlayCircle, PauseCircle, RotateCcw, Coffee } from "lucide-react";
+import { usePomodoro } from "@/hooks/usePomodoro";
 
 export const PomodoroTimer = () => {
   const [minutes, setMinutes] = useState(25);
   const [seconds, setSeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
-  const [completedPomodoros, setCompletedPomodoros] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { stats, incrementPomodoro } = usePomodoro();
 
   const totalSeconds = isBreak ? 5 * 60 : 25 * 60;
   const currentSeconds = minutes * 60 + seconds;
@@ -34,8 +35,8 @@ export const PomodoroTimer = () => {
             setMinutes(25);
             setSeconds(0);
           } else {
-            // Pomodoro finished
-            setCompletedPomodoros(prev => prev + 1);
+            // Pomodoro finished - increment stats
+            incrementPomodoro();
             setIsBreak(true);
             setMinutes(5);
             setSeconds(0);
@@ -53,7 +54,7 @@ export const PomodoroTimer = () => {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isActive, minutes, seconds, isBreak]);
+  }, [isActive, minutes, seconds, isBreak, incrementPomodoro]);
 
   const toggle = () => {
     setIsActive(!isActive);
@@ -151,11 +152,11 @@ export const PomodoroTimer = () => {
       <div className="text-center space-y-2">
         <div className="flex items-center justify-center gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">{completedPomodoros}</div>
+            <div className="text-2xl font-bold text-purple-600">{stats.completedPomodoros}</div>
             <div className="text-xs text-gray-600">Pomodoros hoje</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">{Math.floor(completedPomodoros * 25 / 60)}h {(completedPomodoros * 25) % 60}m</div>
+            <div className="text-2xl font-bold text-green-600">{Math.floor(stats.totalFocusTime / 60)}h {stats.totalFocusTime % 60}m</div>
             <div className="text-xs text-gray-600">Tempo focado</div>
           </div>
         </div>

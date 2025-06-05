@@ -7,39 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { BookOpen, Plus, FileText, Edit } from "lucide-react";
-
-interface Book {
-  id: string;
-  title: string;
-  author: string;
-  totalPages: number;
-  currentPage: number;
-  notes: string;
-  category: string;
-}
+import { useBooks } from "@/hooks/useBooks";
 
 export const BookTracker = () => {
-  const [books, setBooks] = useState<Book[]>([
-    {
-      id: '1',
-      title: 'Atomic Habits',
-      author: 'James Clear',
-      totalPages: 320,
-      currentPage: 156,
-      notes: 'Excelente livro sobre formação de hábitos. O conceito de 1% melhor a cada dia é muito poderoso.',
-      category: 'Desenvolvimento Pessoal'
-    },
-    {
-      id: '2',
-      title: 'Clean Code',
-      author: 'Robert C. Martin',
-      totalPages: 464,
-      currentPage: 89,
-      notes: 'Princípios fundamentais para escrever código limpo e mantível.',
-      category: 'Programação'
-    }
-  ]);
-
+  const { books, addBook, updateBook, updateProgress } = useBooks();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingBook, setEditingBook] = useState<string | null>(null);
   const [newBook, setNewBook] = useState({
@@ -51,38 +22,28 @@ export const BookTracker = () => {
     category: ''
   });
 
-  const addBook = () => {
+  const handleAddBook = () => {
     if (!newBook.title || !newBook.author || !newBook.totalPages) return;
     
-    const book: Book = {
-      id: Date.now().toString(),
+    addBook({
       title: newBook.title,
       author: newBook.author,
       totalPages: parseInt(newBook.totalPages),
       currentPage: parseInt(newBook.currentPage) || 0,
       notes: newBook.notes,
       category: newBook.category
-    };
+    });
 
-    setBooks([...books, book]);
     setNewBook({ title: '', author: '', totalPages: '', currentPage: '0', notes: '', category: '' });
     setShowAddForm(false);
   };
 
-  const updateProgress = (id: string, newPage: number) => {
-    setBooks(books.map(book => 
-      book.id === id ? { ...book, currentPage: Math.min(newPage, book.totalPages) } : book
-    ));
-  };
-
   const updateNotes = (id: string, notes: string) => {
-    setBooks(books.map(book => 
-      book.id === id ? { ...book, notes } : book
-    ));
+    updateBook(id, { notes });
     setEditingBook(null);
   };
 
-  const getProgressPercentage = (book: Book) => {
+  const getProgressPercentage = (book: any) => {
     return (book.currentPage / book.totalPages) * 100;
   };
 
@@ -154,7 +115,7 @@ export const BookTracker = () => {
                 rows={3}
               />
               <div className="flex gap-2">
-                <Button onClick={addBook} className="bg-green-600 hover:bg-green-700">
+                <Button onClick={handleAddBook} className="bg-green-600 hover:bg-green-700">
                   Adicionar Livro
                 </Button>
                 <Button variant="outline" onClick={() => setShowAddForm(false)}>
