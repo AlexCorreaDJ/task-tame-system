@@ -3,7 +3,10 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { PlayCircle, PauseCircle, RotateCcw, Coffee } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { PlayCircle, PauseCircle, RotateCcw, Coffee, Settings } from "lucide-react";
 import { usePomodoro } from "@/hooks/usePomodoro";
 
 export const PomodoroTimer = () => {
@@ -11,10 +14,13 @@ export const PomodoroTimer = () => {
   const [seconds, setSeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
+  const [focusTime, setFocusTime] = useState(25);
+  const [breakTime, setBreakTime] = useState(5);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const { stats, incrementPomodoro } = usePomodoro();
 
-  const totalSeconds = isBreak ? 5 * 60 : 25 * 60;
+  const totalSeconds = isBreak ? breakTime * 60 : focusTime * 60;
   const currentSeconds = minutes * 60 + seconds;
   const progress = ((totalSeconds - currentSeconds) / totalSeconds) * 100;
 
@@ -32,13 +38,13 @@ export const PomodoroTimer = () => {
           if (isBreak) {
             // Break finished, back to work
             setIsBreak(false);
-            setMinutes(25);
+            setMinutes(focusTime);
             setSeconds(0);
           } else {
             // Pomodoro finished - increment stats
             incrementPomodoro();
             setIsBreak(true);
-            setMinutes(5);
+            setMinutes(breakTime);
             setSeconds(0);
           }
         }
@@ -54,7 +60,7 @@ export const PomodoroTimer = () => {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isActive, minutes, seconds, isBreak, incrementPomodoro]);
+  }, [isActive, minutes, seconds, isBreak, incrementPomodoro, focusTime, breakTime]);
 
   const toggle = () => {
     setIsActive(!isActive);
@@ -63,16 +69,16 @@ export const PomodoroTimer = () => {
   const reset = () => {
     setIsActive(false);
     if (isBreak) {
-      setMinutes(5);
+      setMinutes(breakTime);
     } else {
-      setMinutes(25);
+      setMinutes(focusTime);
     }
     setSeconds(0);
   };
 
   const skipBreak = () => {
     setIsBreak(false);
-    setMinutes(25);
+    setMinutes(focusTime);
     setSeconds(0);
     setIsActive(false);
   };
@@ -81,23 +87,61 @@ export const PomodoroTimer = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleConfigSave = (newFocusTime: number, newBreakTime: number) => {
+    setFocusTime(newFocusTime);
+    setBreakTime(newBreakTime);
+    
+    // Reset timer with new settings if not running
+    if (!isActive) {
+      if (isBreak) {
+        setMinutes(newBreakTime);
+      } else {
+        setMinutes(newFocusTime);
+      }
+      setSeconds(0);
+    }
+    
+    setIsConfigOpen(false);
+  };
+
   return (
     <div className="flex flex-col items-center space-y-4 p-6">
       {/* Timer Display */}
       <div className="text-center space-y-2">
-        <Badge 
-          variant="outline" 
-          className={`${isBreak ? 'bg-green-100 text-green-700 border-green-200' : 'bg-purple-100 text-purple-700 border-purple-200'} px-4 py-1`}
-        >
-          {isBreak ? (
-            <>
-              <Coffee className="h-4 w-4 mr-1" />
-              Pausa
-            </>
-          ) : (
-            'Foco'
-          )}
-        </Badge>
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Badge 
+            variant="outline" 
+            className={`${isBreak ? 'bg-green-100 text-green-700 border-green-200' : 'bg-purple-100 text-purple-700 border-purple-200'} px-4 py-1`}
+          >
+            {isBreak ? (
+              <>
+                <Coffee className="h-4 w-4 mr-1" />
+                Pausa ({breakTime}min)
+              </>
+            ) : (
+              `Foco (${focusTime}min)`
+            )}
+          </Badge>
+          
+          <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Configurar Cronômetro</DialogTitle>
+              </DialogHeader>
+              <TimerConfig 
+                focusTime={focusTime}
+                breakTime={breakTime}
+                onSave={handleConfigSave}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
+        
         <div className="text-6xl font-mono font-bold text-gray-800">
           {formatTime(minutes, seconds)}
         </div>
@@ -160,6 +204,62 @@ export const PomodoroTimer = () => {
             <div className="text-xs text-gray-600">Tempo focado</div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+};
+
+const TimerConfig = ({ 
+  focusTime, 
+  breakTime, 
+  onSave 
+}: { 
+  focusTime: number; 
+  breakTime: number; 
+  onSave: (focusTime: number, breakTime: number) => void; 
+}) => {
+  const [newFocusTime, setNewFocusTime] = useState(focusTime);
+  const [newBreakTime, setNewBreakTime] = useState(breakTime);
+
+  const handleSave = () => {
+    onSave(newFocusTime, newBreakTime);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="focus-time">Tempo de Foco (minutos)</Label>
+        <Input
+          id="focus-time"
+          type="number"
+          min="1"
+          max="60"
+          value={newFocusTime}
+          onChange={(e) => setNewFocusTime(Number(e.target.value))}
+          className="w-full"
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="break-time">Tempo de Pausa (minutos)</Label>
+        <Input
+          id="break-time"
+          type="number"
+          min="1"
+          max="30"
+          value={newBreakTime}
+          onChange={(e) => setNewBreakTime(Number(e.target.value))}
+          className="w-full"
+        />
+      </div>
+      
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={() => onSave(focusTime, breakTime)}>
+          Cancelar
+        </Button>
+        <Button onClick={handleSave}>
+          Salvar
+        </Button>
       </div>
     </div>
   );
