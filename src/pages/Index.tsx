@@ -6,8 +6,9 @@ import { TaskManager } from "@/components/TaskManager";
 import { BookTracker } from "@/components/BookTracker";
 import { PomodoroTimer } from "@/components/PomodoroTimer";
 import { ProjectsSection } from "@/components/ProjectsSection";
+import { CalendarManager } from "@/components/CalendarManager";
 import { UserProfileMenu } from "@/components/UserProfileMenu";
-import { CheckSquare, BookOpen, Clock, FolderKanban } from "lucide-react";
+import { CheckSquare, BookOpen, Clock, FolderKanban, Calendar } from "lucide-react";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("tasks");
@@ -17,6 +18,7 @@ const Index = () => {
     { id: "books", label: "Leitura", icon: BookOpen, component: BookTracker },
     { id: "pomodoro", label: "Sessão de Foco", icon: Clock, component: PomodoroTimer },
     { id: "projects", label: "Projetos", icon: FolderKanban, component: ProjectsSection },
+    { id: "calendar", label: "Calendário", icon: Calendar, component: CalendarManager },
   ];
 
   const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component || TaskManager;
