@@ -8,6 +8,7 @@ import { PomodoroTimer } from "@/components/PomodoroTimer";
 import { ProjectsSection } from "@/components/ProjectsSection";
 import { CalendarManager } from "@/components/CalendarManager";
 import { UserProfileMenu } from "@/components/UserProfileMenu";
+import { DateTimeDisplay } from "@/components/DateTimeDisplay";
 import { CheckSquare, BookOpen, Clock, FolderKanban, Calendar } from "lucide-react";
 
 const Index = () => {
@@ -25,7 +26,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Header with Profile Menu */}
+      {/* Header with Profile Menu and DateTime */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-blue-100 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
@@ -37,7 +38,11 @@ const Index = () => {
                 Produtividade TDAH
               </h1>
             </div>
-            <UserProfileMenu />
+            
+            <div className="flex items-center gap-6">
+              <DateTimeDisplay />
+              <UserProfileMenu />
+            </div>
           </div>
         </div>
       </div>
