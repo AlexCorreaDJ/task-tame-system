@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,11 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FolderOpen, Plus, Calendar, Target, Lightbulb } from "lucide-react";
+import { FolderOpen, Plus, Calendar, Target, Lightbulb, NotebookPen } from "lucide-react";
 import { useProjects, Project } from "@/hooks/useProjects";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 export const ProjectsSection = () => {
   const { projects, addProject, updateProject } = useProjects();
+  const [notes, setNotes] = useLocalStorage('focusflow-project-notes', '');
   const [showAddForm, setShowAddForm] = useState(false);
   const [newProject, setNewProject] = useState({
     title: '',
@@ -58,6 +59,28 @@ export const ProjectsSection = () => {
 
   return (
     <div className="space-y-6">
+      {/* Quick Notes Block */}
+      <Card className="bg-white/70 backdrop-blur-sm border-purple-200">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg text-purple-700 flex items-center gap-2">
+            <NotebookPen className="h-5 w-5" />
+            Bloco de Notas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            placeholder="Escreva suas anotações rápidas aqui... ideias, lembretes, insights..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={4}
+            className="resize-none"
+          />
+          <div className="mt-2 text-xs text-gray-500">
+            Suas anotações são salvas automaticamente
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Add Project Form */}
       <Card className="bg-white/70 backdrop-blur-sm border-purple-200">
         <CardHeader className="pb-3">
