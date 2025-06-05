@@ -7,14 +7,16 @@ import { BookTracker } from "@/components/BookTracker";
 import { PomodoroTimer } from "@/components/PomodoroTimer";
 import { ProjectsSection } from "@/components/ProjectsSection";
 import { CalendarManager } from "@/components/CalendarManager";
+import { PermissionsManager } from "@/components/PermissionsManager";
 import { UserProfileMenu } from "@/components/UserProfileMenu";
 import { DateTimeDisplay } from "@/components/DateTimeDisplay";
-import { CheckSquare, BookOpen, Clock, FolderKanban, Calendar } from "lucide-react";
+import { CheckSquare, BookOpen, Clock, FolderKanban, Calendar, Shield } from "lucide-react";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("tasks");
+  const [activeTab, setActiveTab] = useState("permissions");
 
   const tabs = [
+    { id: "permissions", label: "Permissões", icon: Shield, component: PermissionsManager },
     { id: "tasks", label: "Tarefas", icon: CheckSquare, component: TaskManager },
     { id: "books", label: "Leitura", icon: BookOpen, component: BookTracker },
     { id: "pomodoro", label: "Sessão de Foco", icon: Clock, component: PomodoroTimer },
@@ -22,7 +24,7 @@ const Index = () => {
     { id: "calendar", label: "Calendário", icon: Calendar, component: CalendarManager },
   ];
 
-  const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component || TaskManager;
+  const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component || PermissionsManager;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
