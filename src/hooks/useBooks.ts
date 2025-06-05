@@ -10,6 +10,9 @@ export interface Book {
   notes: string;
   category: string;
   createdAt: string;
+  type: 'book' | 'pdf';
+  pdfFile?: File;
+  pdfUrl?: string;
 }
 
 export const useBooks = () => {
@@ -22,7 +25,8 @@ export const useBooks = () => {
       currentPage: 156,
       notes: 'Excelente livro sobre formação de hábitos. O conceito de 1% melhor a cada dia é muito poderoso.',
       category: 'Desenvolvimento Pessoal',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      type: 'book'
     },
     {
       id: '2',
@@ -32,7 +36,8 @@ export const useBooks = () => {
       currentPage: 89,
       notes: 'Princípios fundamentais para escrever código limpo e mantível.',
       category: 'Programação',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      type: 'book'
     }
   ]);
 
@@ -44,6 +49,32 @@ export const useBooks = () => {
     };
     setBooks(prev => [...prev, newBook]);
     return newBook;
+  };
+
+  const addPdf = async (file: File, title?: string, author?: string, category?: string) => {
+    try {
+      // Create a URL for the PDF file
+      const pdfUrl = URL.createObjectURL(file);
+      
+      const newPdf: Book = {
+        id: Date.now().toString(),
+        title: title || file.name.replace('.pdf', ''),
+        author: author || 'Não informado',
+        totalPages: 1, // PDF pages will need to be calculated separately
+        currentPage: 0,
+        notes: '',
+        category: category || 'PDF',
+        createdAt: new Date().toISOString(),
+        type: 'pdf',
+        pdfUrl
+      };
+      
+      setBooks(prev => [...prev, newPdf]);
+      return newPdf;
+    } catch (error) {
+      console.error('Erro ao adicionar PDF:', error);
+      throw error;
+    }
   };
 
   const updateBook = (id: string, updates: Partial<Book>) => {
@@ -66,6 +97,7 @@ export const useBooks = () => {
   return {
     books,
     addBook,
+    addPdf,
     updateBook,
     deleteBook,
     updateProgress
