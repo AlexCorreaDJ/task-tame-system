@@ -10,11 +10,33 @@ export const requestPermission = async (permissionId: string): Promise<Permissio
 
     switch (permissionId) {
       case 'notifications':
-        if ('Notification' in window) {
-          console.log('Estado atual da notificação:', Notification.permission);
-          
-          if (Notification.permission === 'default') {
-            console.log('Solicitando permissão de notificação...');
+        // Verifica se o navegador suporta notificações
+        if (!('Notification' in window)) {
+          console.log('Notification API não disponível neste navegador');
+          toast({
+            title: "Notificações não suportadas",
+            description: "Este navegador não suporta notificações push.",
+            variant: "destructive"
+          });
+          return 'denied';
+        }
+
+        // Verifica se estamos em contexto seguro
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+          console.log('Notificações requerem HTTPS');
+          toast({
+            title: "Contexto inseguro",
+            description: "Notificações requerem conexão HTTPS.",
+            variant: "destructive"
+          });
+          return 'denied';
+        }
+
+        console.log('Estado atual da notificação:', Notification.permission);
+        
+        if (Notification.permission === 'default') {
+          console.log('Solicitando permissão de notificação...');
+          try {
             const permission = await Notification.requestPermission();
             console.log('Resultado da solicitação:', permission);
             newStatus = permission as Permission['status'];
@@ -27,10 +49,14 @@ export const requestPermission = async (permissionId: string): Promise<Permissio
               
               // Testa enviando uma notificação
               setTimeout(() => {
-                new Notification('TDAHFOCUS', {
-                  body: 'Notificações ativadas com sucesso!',
-                  icon: '/favicon.ico'
-                });
+                try {
+                  new Notification('TDAHFOCUS', {
+                    body: 'Notificações ativadas com sucesso!',
+                    icon: '/favicon.ico'
+                  });
+                } catch (error) {
+                  console.error('Erro ao criar notificação de teste:', error);
+                }
               }, 1000);
             } else if (permission === 'denied') {
               toast({
@@ -39,21 +65,29 @@ export const requestPermission = async (permissionId: string): Promise<Permissio
                 variant: "destructive"
               });
             }
-          } else {
-            newStatus = Notification.permission as Permission['status'];
-            if (newStatus === 'granted') {
-              toast({
-                title: "Notificações já ativadas!",
-                description: "As notificações já estão funcionando.",
-              });
-            }
+          } catch (error) {
+            console.error('Erro ao solicitar permissão:', error);
+            toast({
+              title: "Erro ao solicitar permissão",
+              description: "Não foi possível solicitar permissão de notificação.",
+              variant: "destructive"
+            });
+            return 'denied';
           }
         } else {
-          toast({
-            title: "Não suportado",
-            description: "Notificações não são suportadas neste dispositivo.",
-            variant: "destructive"
-          });
+          newStatus = Notification.permission as Permission['status'];
+          if (newStatus === 'granted') {
+            toast({
+              title: "Notificações já ativadas!",
+              description: "As notificações já estão funcionando.",
+            });
+          } else if (newStatus === 'denied') {
+            toast({
+              title: "Permissão negada anteriormente",
+              description: "Ative as notificações nas configurações do navegador.",
+              variant: "destructive"
+            });
+          }
         }
         break;
 

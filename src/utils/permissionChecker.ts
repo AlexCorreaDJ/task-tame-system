@@ -5,11 +5,23 @@ export const checkPermission = async (permissionId: string): Promise<Permission[
   try {
     switch (permissionId) {
       case 'notifications':
-        if ('Notification' in window) {
-          const permission = Notification.permission;
-          if (permission === 'default') return 'prompt';
-          return permission as Permission['status'];
+        // Verifica se o navegador suporta notificações
+        if (!('Notification' in window)) {
+          console.log('Notification API não disponível');
+          return 'denied';
         }
+        
+        // Verifica se estamos em um contexto seguro (HTTPS ou localhost)
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+          console.log('Notificações requerem HTTPS');
+          return 'denied';
+        }
+        
+        const permission = Notification.permission;
+        console.log('Status atual da permissão de notificação:', permission);
+        
+        if (permission === 'default') return 'prompt';
+        if (permission === 'granted') return 'granted';
         return 'denied';
 
       case 'storage':
