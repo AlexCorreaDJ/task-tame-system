@@ -133,7 +133,7 @@ export const ReminderForm = ({ onAddReminder, onCancel }: ReminderFormProps) => 
           <Checkbox
             id="create-alarm"
             checked={createAlarm}
-            onCheckedChange={setCreateAlarm}
+            onCheckedChange={(checked) => setCreateAlarm(checked === true)}
             className="data-[state=checked]:bg-blue-600"
           />
           <label 

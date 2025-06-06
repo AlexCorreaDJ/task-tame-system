@@ -44,7 +44,7 @@ export const createSystemAlarm = async (title: string, time: string, description
     if (Capacitor.isPluginAvailable('App')) {
       const { App } = await import('@capacitor/app');
       
-      // Abre o app de alarmes do Android
+      // Abre o app de alarmes do Android usando o método correto
       await App.openUrl({
         url: `intent://alarm?${new URLSearchParams({
           action: 'android.intent.action.SET_ALARM',
