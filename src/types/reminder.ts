@@ -8,6 +8,7 @@ export interface Reminder {
   relatedId?: string; // ID da tarefa/livro/projeto relacionado
   isActive: boolean;
   useBalloonStyle?: boolean; // Nova propriedade para estilo de balão
+  createSystemAlarm?: boolean; // Nova propriedade para criar alarme do sistema
   createdAt: string;
   localNotificationId?: number; // ID da notificação local agendada
 }

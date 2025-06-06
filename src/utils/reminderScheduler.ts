@@ -4,11 +4,30 @@ import {
   isNativePlatform,
   cancelLocalNotification
 } from '@/utils/localNotifications';
+import { createSystemAlarm } from '@/utils/alarmIntegration';
 import { toast } from '@/hooks/use-toast';
 import { Reminder } from '@/types/reminder';
 
 export const scheduleReminder = async (reminder: Reminder): Promise<Reminder> => {
   console.log('➕ Agendando lembrete:', reminder);
+  
+  // Cria alarme do sistema se solicitado
+  if (reminder.createSystemAlarm && reminder.isActive) {
+    console.log('⏰ Criando alarme do sistema...');
+    
+    const alarmCreated = await createSystemAlarm(
+      reminder.title,
+      reminder.time,
+      reminder.description
+    );
+    
+    if (alarmCreated) {
+      toast({
+        title: "⏰ Alarme criado!",
+        description: `Alarme configurado no sistema para "${reminder.title}" às ${reminder.time}`,
+      });
+    }
+  }
   
   // Se estiver no app nativo e o lembrete está ativo, agenda notificação local
   if (isNativePlatform() && reminder.isActive) {
@@ -31,24 +50,30 @@ export const scheduleReminder = async (reminder: Reminder): Promise<Reminder> =>
         localNotificationId: Date.now()
       };
       
-      toast({
-        title: "✅ Lembrete criado!",
-        description: `"${reminder.title}" aparecerá às ${reminder.time}! 🔔`,
-      });
+      if (!reminder.createSystemAlarm) {
+        toast({
+          title: "✅ Lembrete criado!",
+          description: `"${reminder.title}" aparecerá às ${reminder.time}! 🔔`,
+        });
+      }
       
       return updatedReminder;
     } else {
-      toast({
-        title: "⚠️ Lembrete criado",
-        description: `"${reminder.title}" salvo, mas notificação pode não funcionar`,
-        variant: "destructive"
-      });
+      if (!reminder.createSystemAlarm) {
+        toast({
+          title: "⚠️ Lembrete criado",
+          description: `"${reminder.title}" salvo, mas notificação pode não funcionar`,
+          variant: "destructive"
+        });
+      }
     }
   } else {
-    toast({
-      title: "✅ Lembrete criado!",
-      description: `"${reminder.title}" configurado para ${reminder.time}`,
-    });
+    if (!reminder.createSystemAlarm) {
+      toast({
+        title: "✅ Lembrete criado!",
+        description: `"${reminder.title}" configurado para ${reminder.time}`,
+      });
+    }
   }
   
   return reminder;
