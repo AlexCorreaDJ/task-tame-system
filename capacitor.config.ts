@@ -33,10 +33,8 @@ const config: CapacitorConfig = {
       smallIcon: "ic_notification",
       iconColor: "#4F46E5",
       sound: "default",
-      // Configurações para funcionar em segundo plano
       requestPermissions: true,
       scheduleOn: "trigger",
-      // Habilitando configurações de estilo balão para Android
       actionTypes: [
         {
           id: "REMINDER_ACTION",
@@ -60,9 +58,7 @@ const config: CapacitorConfig = {
     captureInput: true,
     webContentsDebuggingEnabled: true,
     backgroundColor: "#ffffff",
-    // Permite que o app funcione em segundo plano
     useLegacyBridge: false,
-    // Configurações para notificações em estilo balão
     intentFilters: [
       {
         action: "android.intent.action.VIEW",
@@ -76,7 +72,6 @@ const config: CapacitorConfig = {
         ]
       }
     ],
-    // Configurações adicionais para FCM
     includePlugins: [
       "@capacitor/push-notifications",
       "@capacitor/local-notifications"

@@ -1,5 +1,4 @@
 
-
 apply plugin: 'com.android.application'
 
 android {
@@ -40,7 +39,7 @@ dependencies {
     implementation project(':capacitor-android')
     
     // Firebase dependencies for push notifications and balloon-style notifications
-    implementation platform('com.google.firebase:firebase-bom:31.5.0')
+    implementation platform('com.google.firebase:firebase-bom:32.7.0')
     implementation 'com.google.firebase:firebase-messaging'
     implementation 'com.google.firebase:firebase-analytics'
     
@@ -53,18 +52,19 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
-// Apply Google Services plugin only if google-services.json exists
+// Apply Google Services plugin for Firebase
 try {
     def servicesJSON = file('google-services.json')
     if (servicesJSON.exists()) {
         apply plugin: 'com.google.gms.google-services'
-        logger.info("✅ google-services.json found, Firebase configured successfully!")
+        logger.info("✅ google-services.json found! Firebase configured successfully!")
+        logger.info("🔥 Push notifications and FCM are now available!")
     } else {
-        logger.warn("⚠️ google-services.json not found. Please add it to enable Firebase features.")
-        logger.warn("📱 Push notifications and balloon-style notifications won't work without Firebase configuration.")
+        logger.error("❌ google-services.json NOT found in android/app/ directory!")
+        logger.error("📱 Please add google-services.json to enable Firebase features")
+        logger.error("🔗 Download it from Firebase Console > Project Settings > General > Your apps")
     }
 } catch(Exception e) {
     logger.error("❌ Error applying Google Services plugin: ${e.message}")
-    logger.warn("📱 Push notifications won't work without proper Firebase configuration")
+    logger.error("📱 Push notifications won't work without proper Firebase configuration")
 }
-
