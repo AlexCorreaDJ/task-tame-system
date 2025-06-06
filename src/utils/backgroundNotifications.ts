@@ -1,7 +1,7 @@
 
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { isNativeAndroidApp } from './androidNotifications';
-import { Reminder } from '@/hooks/useReminders';
+import { Reminder } from '@/types/reminder';
 import { playNotificationSound } from './audioNotifications';
 
 export const scheduleBackgroundReminder = async (reminder: Reminder) => {

@@ -2,7 +2,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Reminder } from "@/hooks/useReminders";
+import { Reminder } from "@/types/reminder";
 import { Clock, Trash2, Bell, BookOpen, Briefcase, Coffee, Activity, MessageCircle } from "lucide-react";
 import { isNativeAndroid } from "@/utils/firebaseNotifications";
 

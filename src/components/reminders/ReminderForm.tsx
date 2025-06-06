@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Clock, MessageCircle } from 'lucide-react';
-import { Reminder } from '@/hooks/useReminders';
+import { Reminder } from '@/types/reminder';
 import { isNativeAndroid } from '@/utils/firebaseNotifications';
 
 interface ReminderFormProps {
