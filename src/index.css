@@ -89,23 +89,58 @@
     @apply border-border;
   }
 
+  html {
+    /* Previne zoom horizontal */
+    overflow-x: hidden;
+    /* Tamanho de fonte base para mobile */
+    font-size: 16px;
+  }
+
   body {
     @apply bg-background text-foreground;
     /* Previne zoom no iOS */
     -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     /* Melhora o scrolling no iOS */
     -webkit-overflow-scrolling: touch;
     /* Remove o highlight azul no toque */
     -webkit-tap-highlight-color: transparent;
+    /* Previne zoom horizontal */
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
   }
 
-  /* Estilos específicos para mobile */
+  /* Root container */
+  #root {
+    width: 100%;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Estilos específicos para mobile - corrige zoom */
   input, textarea, select {
     /* Previne zoom automático no iOS quando input é focado */
-    font-size: 16px;
-    /* Aumenta o tamanho mínimo para mobile */
-    min-height: 48px;
+    font-size: 16px !important;
+    /* Remove aparência padrão que pode causar zoom */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    /* Tamanho mínimo para facilitar toque */
+    min-height: 44px;
     padding: 12px 16px;
+  }
+
+  /* Previne zoom em botões */
+  button, [role="button"] {
+    /* Previne zoom automático */
+    font-size: 16px !important;
+    /* Melhora o toque em mobile */
+    touch-action: manipulation;
+    /* Tamanho mínimo para toque */
+    min-height: 44px;
+    min-width: 44px;
   }
 
   /* Safe area para dispositivos com notch */
@@ -117,41 +152,39 @@
     padding-top: env(safe-area-inset-top);
   }
 
-  /* Melhora a área de toque em dispositivos móveis */
-  button, [role="button"] {
-    min-height: 48px;
-    min-width: 48px;
-    /* Melhora o toque em mobile */
-    touch-action: manipulation;
-  }
-
-  /* Ajustes específicos para mobile */
+  /* Ajustes específicos para mobile - sem zoom */
   @media (max-width: 768px) {
-    /* Aumenta o tamanho dos elementos para melhor proporção */
+    html {
+      /* Força tamanho de fonte correto */
+      font-size: 16px !important;
+    }
+    
+    /* Elementos de interface com tamanho apropriado */
     .mobile-card {
-      padding: 24px;
-      margin-bottom: 24px;
+      padding: 16px;
+      margin-bottom: 16px;
     }
     
-    /* Melhora o espaçamento dos botões */
+    /* Botões com tamanho adequado */
     button {
-      padding: 16px 24px;
-      font-size: 16px;
+      font-size: 16px !important;
+      padding: 12px 20px;
+      min-height: 44px;
     }
     
-    /* Texto maior em mobile */
-    h1 { font-size: 1.5rem; }
-    h2 { font-size: 1.25rem; }
-    h3 { font-size: 1.125rem; }
+    /* Texto com tamanho legível */
+    h1 { font-size: 1.5rem !important; }
+    h2 { font-size: 1.25rem !important; }
+    h3 { font-size: 1.125rem !important; }
     
-    /* Cards com melhor proporção */
+    /* Cards com padding adequado */
     .card {
-      padding: 20px;
-      border-radius: 12px;
+      padding: 16px;
+      border-radius: 8px;
     }
   }
 
-  /* Scroll suave em todos os containers */
+  /* Scroll suave */
   * {
     scroll-behavior: smooth;
   }
@@ -162,8 +195,14 @@
   }
 }
 
-/* Utilidades adicionais para mobile */
+/* Utilidades adicionais para prevenir zoom */
 @layer utilities {
+  .no-zoom {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  
   .touch-action-none {
     touch-action: none;
   }
@@ -174,20 +213,21 @@
   
   /* Classes específicas para mobile */
   .mobile-optimized {
-    @apply text-base leading-relaxed;
+    @apply text-base leading-relaxed no-zoom;
   }
   
   @media (max-width: 768px) {
     .mobile-spacing {
-      @apply p-6 m-4;
+      @apply p-4 m-2;
     }
     
     .mobile-text {
-      @apply text-lg;
+      font-size: 16px !important;
     }
     
     .mobile-button {
-      @apply h-14 px-6 text-base;
+      @apply h-11 px-5;
+      font-size: 16px !important;
     }
   }
 }
