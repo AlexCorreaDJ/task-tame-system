@@ -1,4 +1,5 @@
 
+
 apply plugin: 'com.android.application'
 
 android {
@@ -66,3 +67,4 @@ try {
     logger.error("❌ Error applying Google Services plugin: ${e.message}")
     logger.warn("📱 Push notifications won't work without proper Firebase configuration")
 }
+
