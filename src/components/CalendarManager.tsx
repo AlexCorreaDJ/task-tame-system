@@ -22,13 +22,11 @@ export const CalendarManager = () => {
     deleteEvent, 
     getEventsForDate,
     getUpcomingEvents,
-    requestNotificationPermission,
     startEventSystem 
   } = useCalendarEvents();
   
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showAddForm, setShowAddForm] = useState(false);
-  const [notificationPermission, setNotificationPermission] = useState(false);
   
   // Safe date formatting function
   const safeFormat = (date: Date | string, formatStr: string) => {
@@ -52,18 +50,8 @@ export const CalendarManager = () => {
 
   useEffect(() => {
     const cleanup = startEventSystem();
-    
-    if ('Notification' in window) {
-      setNotificationPermission(Notification.permission === 'granted');
-    }
-
     return cleanup;
   }, []);
-
-  const handleRequestPermission = async () => {
-    const granted = await requestNotificationPermission();
-    setNotificationPermission(granted);
-  };
 
   const handleAddEvent = () => {
     if (!newEvent.title || !newEvent.date || !newEvent.time) return;
@@ -142,22 +130,6 @@ export const CalendarManager = () => {
               Novo Evento
             </Button>
           </div>
-          
-          {!notificationPermission && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
-              <p className="text-sm text-yellow-700 mb-2">
-                Permita notificações para receber alertas dos seus eventos!
-              </p>
-              <Button 
-                onClick={handleRequestPermission}
-                size="sm"
-                className="bg-yellow-600 hover:bg-yellow-700"
-              >
-                <Bell className="h-4 w-4 mr-2" />
-                Permitir Notificações
-              </Button>
-            </div>
-          )}
         </CardHeader>
         
         {showAddForm && (

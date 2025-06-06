@@ -18,15 +18,6 @@ export interface CalendarEvent {
 export const useCalendarEvents = () => {
   const [events, setEvents] = useLocalStorage<CalendarEvent[]>('focusflow-calendar-events', []);
 
-  // Função para solicitar permissão de notificação
-  const requestNotificationPermission = async () => {
-    if ('Notification' in window) {
-      const permission = await Notification.requestPermission();
-      return permission === 'granted';
-    }
-    return false;
-  };
-
   // Função para mostrar notificação
   const showEventNotification = (event: CalendarEvent) => {
     if ('Notification' in window && Notification.permission === 'granted') {
@@ -108,7 +99,6 @@ export const useCalendarEvents = () => {
     deleteEvent,
     getEventsForDate,
     getUpcomingEvents,
-    requestNotificationPermission,
     startEventSystem
   };
 };
