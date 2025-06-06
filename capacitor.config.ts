@@ -29,6 +29,11 @@ const config: CapacitorConfig = {
     PushNotifications: {
       presentationOptions: ["badge", "sound", "alert"],
     },
+    LocalNotifications: {
+      smallIcon: "ic_notification",
+      iconColor: "#4F46E5",
+      sound: "default",
+    },
   },
   android: {
     allowMixedContent: true,

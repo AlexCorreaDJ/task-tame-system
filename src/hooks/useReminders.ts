@@ -1,3 +1,4 @@
+
 import { useLocalStorage } from './useLocalStorage';
 import { toast } from '@/hooks/use-toast';
 import { 
@@ -22,13 +23,13 @@ export interface Reminder {
 export const useReminders = () => {
   const [reminders, setReminders] = useLocalStorage<Reminder[]>('focusflow-reminders', []);
 
-  // Função para mostrar notificação otimizada para Android
+  // Função para mostrar notificação otimizada para Android nativo
   const showNotification = (reminder: Reminder) => {
     console.log('🔔 Mostrando notificação motivacional:', reminder.title);
     
     const success = showAndroidNotification(
-      reminder.title,
-      reminder.description || 'É hora do seu foco! 🎯',
+      `🎯 ${reminder.title}`,
+      reminder.description || 'É hora do seu foco! Mantenha a concentração! 🚀',
       {
         reminderType: reminder.type,
         reminderId: reminder.id,
@@ -66,7 +67,7 @@ export const useReminders = () => {
     
     // Log da plataforma detectada
     if (isNativeAndroidApp()) {
-      console.log('📱 Plataforma: App nativo Android (Capacitor)');
+      console.log('📱 Plataforma: App nativo Android (Capacitor) - Notificações locais ativas');
     } else if (isWebAndroidApp()) {
       console.log('🌐 Plataforma: App web Android (PWA/WebView)');
     } else {
@@ -94,11 +95,11 @@ export const useReminders = () => {
     if (granted) {
       console.log('✅ Permissão concedida com sucesso');
       
-      // Notificação de teste
+      // Notificação de teste para confirmar funcionamento
       setTimeout(() => {
         const success = showAndroidNotification(
           '🎉 TDAHFOCUS - Notificações Ativas!',
-          'Agora você receberá lembretes motivacionais para manter seu foco! 📱🎯✨',
+          'Agora você receberá lembretes motivacionais na barra de notificações do Android! 📱🎯✨',
           { type: 'welcome' }
         );
         

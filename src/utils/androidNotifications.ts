@@ -1,6 +1,7 @@
 
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 export const isNativeAndroidApp = () => {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
@@ -21,26 +22,35 @@ export const requestAndroidNotificationPermission = async (): Promise<boolean> =
   try {
     // Para apps nativos Android (APK/AAB via Capacitor)
     if (isNativeAndroidApp()) {
-      console.log('📱 App nativo Android detectado - usando Capacitor Push Notifications');
+      console.log('📱 App nativo Android detectado - configurando notificações locais');
       
       try {
-        const permStatus = await PushNotifications.requestPermissions();
-        console.log('📱 Status da permissão nativa:', permStatus);
+        // Solicita permissão para notificações locais
+        const localPermission = await LocalNotifications.requestPermissions();
+        console.log('📱 Permissão de notificações locais:', localPermission);
         
-        if (permStatus.receive === 'granted') {
-          console.log('✅ Permissão nativa concedida para Android');
+        if (localPermission.display === 'granted') {
+          console.log('✅ Permissão de notificações locais concedida');
           
-          // Registra para receber notificações
-          await PushNotifications.register();
-          console.log('✅ Registro de notificações nativas concluído');
+          // Configura canal de notificação para Android
+          await LocalNotifications.createChannel({
+            id: 'tdahfocus-reminders',
+            name: 'Lembretes TDAHFOCUS',
+            description: 'Lembretes motivacionais para manter seu foco',
+            importance: 5,
+            visibility: 1,
+            sound: 'default',
+            vibration: true,
+            lights: true
+          });
           
           return true;
         } else {
-          console.log('❌ Permissão nativa negada para Android');
+          console.log('❌ Permissão de notificações locais negada');
           return false;
         }
       } catch (error) {
-        console.error('❌ Erro ao solicitar permissão nativa:', error);
+        console.error('❌ Erro ao solicitar permissão de notificações locais:', error);
         return false;
       }
     }
@@ -88,32 +98,54 @@ export const requestAndroidNotificationPermission = async (): Promise<boolean> =
 export const showAndroidNotification = (title: string, body: string, data?: any) => {
   console.log('🔔 Mostrando notificação Android:', { title, body });
   
-  // Para apps nativos Android
+  // Para apps nativos Android - usar LocalNotifications
   if (isNativeAndroidApp()) {
-    console.log('📱 Enviando notificação via Capacitor...');
+    console.log('📱 Enviando notificação local via Capacitor...');
     
-    // Com Capacitor, notificações locais são enviadas via plugin separado
-    // Por enquanto, vamos usar a Web API como fallback
-    if ('Notification' in window && Notification.permission === 'granted') {
-      const notification = new Notification(title, {
-        body,
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
-        tag: `tdahfocus-${Date.now()}`,
-        silent: false,
-        requireInteraction: true,
-        data
+    try {
+      LocalNotifications.schedule({
+        notifications: [
+          {
+            id: Date.now(),
+            title: title,
+            body: body,
+            channelId: 'tdahfocus-reminders',
+            sound: 'default',
+            smallIcon: 'ic_notification',
+            iconColor: '#4F46E5',
+            attachments: undefined,
+            actionTypeId: '',
+            extra: data
+          }
+        ]
       });
       
-      // Vibração específica para Android
+      // Vibração para Android
       if ('vibrate' in navigator) {
         navigator.vibrate([200, 100, 200, 100, 300]);
       }
       
-      setTimeout(() => notification.close(), 10000);
       return true;
+    } catch (error) {
+      console.error('❌ Erro ao enviar notificação local:', error);
+      
+      // Fallback para Web Notification
+      if ('Notification' in window && Notification.permission === 'granted') {
+        const notification = new Notification(title, {
+          body,
+          icon: '/favicon.ico',
+          badge: '/favicon.ico',
+          tag: `tdahfocus-${Date.now()}`,
+          silent: false,
+          requireInteraction: true,
+          data
+        });
+        
+        setTimeout(() => notification.close(), 10000);
+        return true;
+      }
+      return false;
     }
-    return false;
   }
   
   // Para apps web Android
@@ -160,14 +192,14 @@ export const checkAndroidNotificationPermission = async (): Promise<'granted' | 
   // Para apps nativos Android
   if (isNativeAndroidApp()) {
     try {
-      const permStatus = await PushNotifications.checkPermissions();
-      console.log('📱 Status atual da permissão nativa:', permStatus);
+      const localPermission = await LocalNotifications.checkPermissions();
+      console.log('📱 Status atual da permissão de notificações locais:', localPermission);
       
-      if (permStatus.receive === 'granted') return 'granted';
-      if (permStatus.receive === 'denied') return 'denied';
+      if (localPermission.display === 'granted') return 'granted';
+      if (localPermission.display === 'denied') return 'denied';
       return 'prompt';
     } catch (error) {
-      console.error('❌ Erro ao verificar permissão nativa:', error);
+      console.error('❌ Erro ao verificar permissão de notificações locais:', error);
       return 'denied';
     }
   }
