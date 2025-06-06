@@ -10,9 +10,7 @@ export interface Book {
   notes: string;
   category: string;
   createdAt: string;
-  type: 'book' | 'pdf';
-  pdfFile?: File;
-  pdfUrl?: string;
+  type: 'book';
 }
 
 export const useBooks = () => {
@@ -51,32 +49,6 @@ export const useBooks = () => {
     return newBook;
   };
 
-  const addPdf = async (file: File, title?: string, author?: string, category?: string) => {
-    try {
-      // Create a URL for the PDF file
-      const pdfUrl = URL.createObjectURL(file);
-      
-      const newPdf: Book = {
-        id: Date.now().toString(),
-        title: title || file.name.replace('.pdf', ''),
-        author: author || 'Não informado',
-        totalPages: 1, // PDF pages will need to be calculated separately
-        currentPage: 0,
-        notes: '',
-        category: category || 'PDF',
-        createdAt: new Date().toISOString(),
-        type: 'pdf',
-        pdfUrl
-      };
-      
-      setBooks(prev => [...prev, newPdf]);
-      return newPdf;
-    } catch (error) {
-      console.error('Erro ao adicionar PDF:', error);
-      throw error;
-    }
-  };
-
   const updateBook = (id: string, updates: Partial<Book>) => {
     setBooks(prev => prev.map(book => 
       book.id === id ? { ...book, ...updates } : book
@@ -97,7 +69,6 @@ export const useBooks = () => {
   return {
     books,
     addBook,
-    addPdf,
     updateBook,
     deleteBook,
     updateProgress
