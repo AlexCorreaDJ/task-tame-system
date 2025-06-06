@@ -223,10 +223,10 @@ export const PermissionsManager = () => {
   if (!allPermissionsChecked) {
     return (
       <Card className="bg-white/70 backdrop-blur-sm border-blue-200">
-        <CardContent className="p-6">
+        <CardContent className="p-4 md:p-6">
           <div className="text-center">
             <AlertCircle className="h-8 w-8 mx-auto text-blue-600 mb-2" />
-            <p className="text-gray-600">Verificando permissões...</p>
+            <p className="text-gray-600 text-sm md:text-base">Verificando permissões...</p>
           </div>
         </CardContent>
       </Card>
@@ -235,36 +235,36 @@ export const PermissionsManager = () => {
 
   return (
     <Card className="bg-white/70 backdrop-blur-sm border-blue-200">
-      <CardHeader>
-        <CardTitle className="text-lg text-blue-700 flex items-center gap-2">
-          <AlertCircle className="h-5 w-5" />
+      <CardHeader className="p-4 md:p-6">
+        <CardTitle className="text-base md:text-lg text-blue-700 flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 md:h-5 md:w-5" />
           Permissões do Aplicativo
         </CardTitle>
-        <p className="text-sm text-gray-600">
+        <p className="text-xs md:text-sm text-gray-600">
           Para o melhor funcionamento do app, precisamos das seguintes permissões:
         </p>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 md:space-y-4 p-4 md:p-6 pt-0">
         {permissions.map((permission) => {
           const IconComponent = permission.icon;
           return (
-            <div key={permission.id} className="flex items-center gap-3 p-4 border rounded-lg bg-white">
-              <IconComponent className="h-6 w-6 text-blue-600" />
+            <div key={permission.id} className="flex items-start gap-3 p-3 md:p-4 border rounded-lg bg-white">
+              <IconComponent className="h-5 w-5 md:h-6 md:w-6 text-blue-600 mt-0.5" />
               
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-medium text-gray-800">{permission.name}</h3>
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                  <h3 className="font-medium text-gray-800 text-sm md:text-base">{permission.name}</h3>
                   {permission.isRequired && (
-                    <Badge variant="outline" className="bg-orange-100 text-orange-700 text-xs">
+                    <Badge variant="outline" className="bg-orange-100 text-orange-700 text-xs w-fit">
                       Obrigatória
                     </Badge>
                   )}
                 </div>
-                <p className="text-sm text-gray-600">{permission.description}</p>
+                <p className="text-xs md:text-sm text-gray-600 leading-relaxed">{permission.description}</p>
               </div>
               
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className={getStatusColor(permission.status)}>
+              <div className="flex flex-col gap-2 items-end">
+                <Badge variant="outline" className={`${getStatusColor(permission.status)} text-xs`}>
                   {getStatusIcon(permission.status)}
                   <span className="ml-1">{getStatusText(permission.status)}</span>
                 </Badge>
@@ -273,7 +273,7 @@ export const PermissionsManager = () => {
                   <Button
                     size="sm"
                     onClick={() => requestPermission(permission.id)}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-blue-600 hover:bg-blue-700 text-xs h-8 px-3"
                   >
                     Permitir
                   </Button>
@@ -284,21 +284,21 @@ export const PermissionsManager = () => {
         })}
         
         {!requiredPermissionsGranted && (
-          <div className="pt-4 border-t">
+          <div className="pt-3 md:pt-4 border-t">
             <Button 
               onClick={requestAllPermissions}
-              className="w-full bg-green-600 hover:bg-green-700"
+              className="w-full bg-green-600 hover:bg-green-700 text-sm md:text-base h-12 md:h-11 px-4"
             >
-              Conceder Todas as Permissões Obrigatórias
+              Conceder Todas as Permissões
             </Button>
           </div>
         )}
         
         {requiredPermissionsGranted && (
-          <div className="pt-4 border-t">
+          <div className="pt-3 md:pt-4 border-t">
             <div className="flex items-center gap-2 text-green-600">
-              <CheckCircle className="h-5 w-5" />
-              <span className="font-medium">Todas as permissões obrigatórias foram concedidas!</span>
+              <CheckCircle className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="font-medium text-sm md:text-base">Todas as permissões obrigatórias foram concedidas!</span>
             </div>
           </div>
         )}
