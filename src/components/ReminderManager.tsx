@@ -7,6 +7,7 @@ import { useReminders } from "@/hooks/useReminders";
 import { toast } from "@/hooks/use-toast";
 import { ReminderForm } from "./reminders/ReminderForm";
 import { ReminderList } from "./reminders/ReminderList";
+import { initializeAudio } from "@/utils/audioNotifications";
 
 export const ReminderManager = () => {
   const { 
@@ -20,6 +21,12 @@ export const ReminderManager = () => {
   
   const [showAddForm, setShowAddForm] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState(false);
+
+  // Função para inicializar o áudio quando o usuário interagir
+  const handleUserInteraction = () => {
+    // Inicializa o sistema de áudio (precisa de interação do usuário)
+    initializeAudio();
+  };
 
   useEffect(() => {
     console.log('🚀 ReminderManager: Iniciando sistema de lembretes motivacionais...');
@@ -40,10 +47,17 @@ export const ReminderManager = () => {
       console.log('🔔 Permissão de notificação:', Notification.permission);
     }
 
+    // Adiciona listener para inicializar áudio quando o usuário interagir
+    document.addEventListener('click', handleUserInteraction);
+    document.addEventListener('touchstart', handleUserInteraction);
+
     return () => {
       if (cleanup) {
         cleanup();
       }
+      // Remove os event listeners quando o componente for desmontado
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
     };
   }, []);
 
@@ -68,7 +82,11 @@ export const ReminderManager = () => {
               </div>
             </CardTitle>
             <Button 
-              onClick={() => setShowAddForm(!showAddForm)}
+              onClick={() => {
+                setShowAddForm(!showAddForm);
+                // Tenta inicializar o áudio quando o usuário clica no botão
+                initializeAudio();
+              }}
               className="bg-green-600 hover:bg-green-700 shadow-lg transform hover:scale-105 transition-all"
             >
               <Plus className="h-4 w-4 mr-2" />

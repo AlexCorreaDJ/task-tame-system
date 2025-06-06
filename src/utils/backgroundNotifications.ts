@@ -2,6 +2,7 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { isNativeAndroidApp } from './androidNotifications';
 import { Reminder } from '@/hooks/useReminders';
+import { playNotificationSound } from './audioNotifications';
 
 export const scheduleBackgroundReminder = async (reminder: Reminder) => {
   if (!isNativeAndroidApp()) {
@@ -34,7 +35,7 @@ export const scheduleBackgroundReminder = async (reminder: Reminder) => {
             repeats: true,
             every: 'day'
           },
-          sound: 'default',
+          sound: 'default',  // Garante que o som padrão seja tocado
           channelId: 'tdahfocus-reminders',
           smallIcon: 'ic_notification',
           iconColor: '#4F46E5',
@@ -132,6 +133,9 @@ export const initializeBackgroundNotifications = async () => {
     // Listener para quando o usuário tocar na notificação
     LocalNotifications.addListener('localNotificationActionPerformed', (notification) => {
       console.log('👆 Usuário tocou na notificação:', notification);
+      
+      // Toca um som quando a notificação é acionada
+      playNotificationSound();
       
       // Aqui você pode adicionar lógica para abrir uma tela específica
       // ou executar alguma ação quando o usuário tocar na notificação

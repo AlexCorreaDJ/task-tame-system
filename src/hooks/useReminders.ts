@@ -14,6 +14,7 @@ import {
   scheduleAllActiveReminders,
   initializeBackgroundNotifications
 } from '@/utils/backgroundNotifications';
+import { playNotificationSound, initializeAudio } from '@/utils/audioNotifications';
 
 export interface Reminder {
   id: string;
@@ -32,6 +33,9 @@ export const useReminders = () => {
   // Função para mostrar notificação otimizada para Android nativo
   const showNotification = (reminder: Reminder) => {
     console.log('🔔 Mostrando notificação motivacional:', reminder.title);
+    
+    // Reproduz o som de notificação
+    playNotificationSound();
     
     const success = showAndroidNotification(
       `🎯 ${reminder.title}`,
@@ -76,6 +80,9 @@ export const useReminders = () => {
   // Inicia o sistema de verificação de lembretes
   const startReminderSystem = async () => {
     console.log('🚀 Iniciando sistema de lembretes motivacionais...');
+    
+    // Inicializa o sistema de áudio (requer interação do usuário)
+    initializeAudio();
     
     // Para apps nativos Android - usa notificações agendadas
     if (isNativeAndroidApp()) {
@@ -123,6 +130,9 @@ export const useReminders = () => {
   const requestNotificationPermission = async () => {
     console.log('🔔 Solicitando permissão de notificação...');
     
+    // Inicializa o áudio (precisa de interação do usuário)
+    initializeAudio();
+    
     const granted = await requestAndroidNotificationPermission();
     
     if (granted) {
@@ -138,6 +148,9 @@ export const useReminders = () => {
       
       // Notificação de teste para confirmar funcionamento
       setTimeout(() => {
+        // Toca o som de notificação para teste
+        playNotificationSound();
+        
         const success = showAndroidNotification(
           '🎉 TDAHFOCUS - Notificações Ativas!',
           'Agora você receberá lembretes motivacionais na barra de notificações do Android! 📱🎯✨',
