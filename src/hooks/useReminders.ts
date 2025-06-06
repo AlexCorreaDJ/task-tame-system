@@ -1,3 +1,4 @@
+
 import { useLocalStorage } from './useLocalStorage';
 import { toast } from '@/hooks/use-toast';
 import { 
@@ -7,20 +8,16 @@ import {
   isNativeAndroidApp,
   isWebAndroidApp
 } from '@/utils/androidNotifications';
-import {
-  scheduleBackgroundReminder,
-  cancelBackgroundReminder,
-  scheduleAllActiveReminders,
-  initializeBackgroundNotifications
-} from '@/utils/backgroundNotifications';
 import { playNotificationSound, initializeAudio } from '@/utils/audioNotifications';
 import {
-  initializeFirebaseMessaging,
-  showBalloonStyleNotification,
-  isNativeAndroid,
-  sendTestBalloonNotification,
-  scheduleFirebaseReminder
-} from '@/utils/firebaseNotifications';
+  requestLocalNotificationPermission,
+  scheduleReminderForToday,
+  testLocalNotification,
+  initializeLocalNotifications,
+  isNativePlatform,
+  cancelLocalNotification,
+  getPendingLocalNotifications
+} from '@/utils/localNotifications';
 
 export interface Reminder {
   id: string;
@@ -31,36 +28,26 @@ export interface Reminder {
   relatedId?: string; // ID da tarefa/livro/projeto relacionado
   isActive: boolean;
   createdAt: string;
-  useBalloonStyle?: boolean; // Nova propriedade para controlar estilo da notificação
-  firebaseScheduled?: boolean; // Nova propriedade para indicar se foi agendado no Firebase
+  localNotificationId?: number; // ID da notificação local agendada
 }
 
 export const useReminders = () => {
   const [reminders, setReminders] = useLocalStorage<Reminder[]>('focusflow-reminders', []);
 
-  // Função para mostrar notificação otimizada para Android nativo
+  // Função para mostrar notificação (fallback para web)
   const showNotification = (reminder: Reminder) => {
     console.log('🔔 Mostrando notificação motivacional:', reminder.title);
     
     // Reproduz o som de notificação
     playNotificationSound();
     
-    // Se o usuário prefere notificações em estilo balão e estamos no Android nativo
-    if (reminder.useBalloonStyle && isNativeAndroid()) {
-      console.log('🎈 Usando estilo balão para notificação');
-      showBalloonStyleNotification(
-        `🎯 ${reminder.title}`,
-        reminder.description || 'É hora do seu foco! Mantenha a concentração! 🚀',
-        {
-          reminderType: reminder.type,
-          reminderId: reminder.id,
-          timestamp: Date.now()
-        }
-      );
+    // Para apps nativos, as notificações locais já cuidam disso
+    if (isNativePlatform()) {
+      console.log('📱 App nativo: notificação será exibida pelo sistema');
       return;
     }
     
-    // Caso contrário, usa o método padrão de notificação
+    // Fallback para web
     const success = showAndroidNotification(
       `🎯 ${reminder.title}`,
       reminder.description || 'É hora do seu foco! Mantenha a concentração! 🚀',
@@ -80,10 +67,10 @@ export const useReminders = () => {
     }
   };
 
-  // Função para verificar lembretes - roda a cada minuto (backup para web)
+  // Função para verificar lembretes - apenas para web
   const checkReminders = () => {
-    // Para apps nativos, as notificações são agendadas em segundo plano
-    if (isNativeAndroidApp()) {
+    // Para apps nativos, as notificações locais são gerenciadas pelo sistema
+    if (isNativePlatform()) {
       console.log('📱 App nativo: notificações gerenciadas pelo sistema');
       return;
     }
@@ -108,35 +95,21 @@ export const useReminders = () => {
     // Inicializa o sistema de áudio (requer interação do usuário)
     initializeAudio();
     
-    // Se estiver no Android nativo, tenta inicializar Firebase primeiro
-    if (isNativeAndroid()) {
-      console.log('📱 App nativo Android: tentando inicializar Firebase...');
+    // Se estiver no app nativo, usa notificações locais
+    if (isNativePlatform()) {
+      console.log('📱 App nativo: configurando notificações locais...');
       
-      const firebaseInitialized = await initializeFirebaseMessaging();
-      
-      if (firebaseInitialized) {
-        toast({
-          title: "🎉 Firebase ativado!",
-          description: "Lembretes em estilo balão configurados! 💬🔔",
-        });
-      }
-      
-      // Mesmo se o Firebase falhar, continua com o sistema de notificações locais
-      console.log('📱 Configurando notificações em segundo plano como fallback...');
-      const initialized = await initializeBackgroundNotifications();
+      const initialized = await initializeLocalNotifications();
       
       if (initialized) {
-        // Agenda todos os lembretes ativos
-        await scheduleAllActiveReminders(reminders);
-        
         toast({
           title: "🎉 Sistema ativado!",
-          description: "Lembretes configurados para funcionar em segundo plano! 📱🔔",
+          description: "Notificações locais configuradas! 📱🔔",
         });
       }
       
       return () => {
-        console.log('⏹️ Sistema de segundo plano não precisa ser parado');
+        console.log('⏹️ Sistema de notificações locais não precisa ser parado');
       };
     }
     
@@ -162,88 +135,58 @@ export const useReminders = () => {
     };
   };
 
-  // Função para testar notificação em formato de balão
+  // Função para testar notificação local
   const testBalloonNotification = async () => {
-    console.log('🎈 Testando notificação em estilo balão...');
+    console.log('🧪 Testando notificação local...');
     
-    // Inicializa o Firebase se necessário
-    if (isNativeAndroid() && !await initializeFirebaseMessaging()) {
+    if (!isNativePlatform()) {
       toast({
-        title: "⚠️ Firebase não inicializado",
-        description: "Não foi possível inicializar o Firebase para notificações em balão",
+        title: "⚠️ Apenas no app nativo",
+        description: "Notificações locais só funcionam no app Android/iOS instalado",
+        variant: "destructive"
       });
       return false;
     }
     
-    const success = await sendTestBalloonNotification();
-    
-    if (success) {
-      toast({
-        title: "✅ Teste enviado!",
-        description: "Verifique a notificação em estilo balão",
-      });
-    } else {
-      toast({
-        title: "❌ Falha no teste",
-        description: "Não foi possível enviar notificação em estilo balão",
-      });
-    }
-    
+    const success = await testLocalNotification();
     return success;
   };
 
-  // Função para solicitar permissão otimizada para Android
+  // Função para solicitar permissão
   const requestNotificationPermission = async () => {
     console.log('🔔 Solicitando permissão de notificação...');
     
     // Inicializa o áudio (precisa de interação do usuário)
     initializeAudio();
     
-    const granted = await requestAndroidNotificationPermission();
+    let granted = false;
     
-    if (granted) {
-      console.log('✅ Permissão concedida com sucesso');
-      
-      // Para apps nativos, tenta inicializar Firebase primeiro
-      if (isNativeAndroid()) {
-        await initializeFirebaseMessaging();
-        
-        // Como fallback, inicializa o sistema de segundo plano com notificações locais
-        const initialized = await initializeBackgroundNotifications();
-        if (initialized) {
-          await scheduleAllActiveReminders(reminders);
-        }
-      }
-      
-      // Notificação de teste para confirmar funcionamento
+    // Para apps nativos, usa notificações locais
+    if (isNativePlatform()) {
+      granted = await requestLocalNotificationPermission();
+    } else {
+      // Para web, usa o método tradicional
+      granted = await requestAndroidNotificationPermission();
+    }
+    
+    if (granted && !isNativePlatform()) {
+      // Notificação de teste apenas para web
       setTimeout(() => {
-        // Toca o som de notificação para teste
         playNotificationSound();
         
-        // Tenta usar estilo balão para a notificação de teste se estivermos no Android nativo
-        if (isNativeAndroid()) {
-          showBalloonStyleNotification(
-            '🎉 TDAHFOCUS - Notificações Ativas!',
-            'Agora você receberá lembretes motivacionais com balões de notificações do Android! 💬🎯✨',
-            { type: 'welcome' }
-          );
-        } else {
-          const success = showAndroidNotification(
-            '🎉 TDAHFOCUS - Notificações Ativas!',
-            'Agora você receberá lembretes motivacionais na barra de notificações do Android! 📱🎯✨',
-            { type: 'welcome' }
-          );
-          
-          if (!success) {
-            toast({
-              title: "🎉 Notificações ativadas!",
-              description: "Sistema de lembretes configurado com sucesso!",
-            });
-          }
+        const success = showAndroidNotification(
+          '🎉 TDAHFOCUS - Notificações Ativas!',
+          'Agora você receberá lembretes motivacionais! 📱🎯✨',
+          { type: 'welcome' }
+        );
+        
+        if (!success) {
+          toast({
+            title: "🎉 Notificações ativadas!",
+            description: "Sistema de lembretes configurado com sucesso!",
+          });
         }
       }, 1000);
-    } else {
-      console.log('❌ Permissão negada ou erro');
     }
     
     return granted;
@@ -254,43 +197,40 @@ export const useReminders = () => {
       ...reminderData,
       id: Date.now().toString(),
       createdAt: new Date().toISOString(),
-      firebaseScheduled: false
     };
     
     console.log('➕ Adicionando novo lembrete:', newReminder);
     
-    // Se estiver no Android nativo e o lembrete está ativo, tenta agendar no Firebase
-    if (isNativeAndroid() && newReminder.isActive) {
-      console.log('🔥 Tentando agendar lembrete no Firebase...');
+    // Se estiver no app nativo e o lembrete está ativo, agenda notificação local
+    if (isNativePlatform() && newReminder.isActive) {
+      console.log('📱 Agendando notificação local...');
       
-      const firebaseSuccess = await scheduleFirebaseReminder(newReminder);
+      const success = await scheduleReminderForToday(
+        newReminder.title,
+        newReminder.description || 'É hora do seu foco! 🚀',
+        newReminder.time,
+        {
+          reminderType: newReminder.type,
+          reminderId: newReminder.id
+        }
+      );
       
-      if (firebaseSuccess) {
-        newReminder.firebaseScheduled = true;
-        newReminder.useBalloonStyle = true; // Ativa automaticamente o estilo balão
-        
-        console.log('✅ Lembrete agendado no Firebase com sucesso!');
-        toast({
-          title: "🎉 Lembrete Firebase criado!",
-          description: `"${newReminder.title}" aparecerá como notificação balão no horário ${newReminder.time}! 💬`,
-        });
-      } else {
-        console.log('⚠️ Firebase falhou, usando sistema local...');
-        
-        // Fallback para notificações locais
-        await scheduleBackgroundReminder(newReminder);
+      if (success) {
+        // Armazena o ID da notificação local (simplificado - usar timestamp)
+        newReminder.localNotificationId = Date.now();
         
         toast({
           title: "✅ Lembrete criado!",
-          description: `"${newReminder.title}" configurado para ${newReminder.time} (sistema local)`,
+          description: `"${newReminder.title}" aparecerá às ${newReminder.time}! 🔔`,
+        });
+      } else {
+        toast({
+          title: "⚠️ Lembrete criado",
+          description: `"${newReminder.title}" salvo, mas notificação pode não funcionar`,
+          variant: "destructive"
         });
       }
     } else {
-      // Para apps nativos sem Firebase ou web apps
-      if (isNativeAndroidApp() && newReminder.isActive) {
-        await scheduleBackgroundReminder(newReminder);
-      }
-      
       toast({
         title: "✅ Lembrete criado!",
         description: `"${newReminder.title}" configurado para ${newReminder.time}`,
@@ -306,23 +246,40 @@ export const useReminders = () => {
       reminder.id === id ? { ...reminder, ...updates } : reminder
     ));
     
-    // Para apps nativos, reagenda a notificação
-    if (isNativeAndroidApp()) {
-      await cancelBackgroundReminder(id);
-      const updatedReminder = reminders.find(r => r.id === id);
-      if (updatedReminder && updates.isActive !== false) {
-        await scheduleBackgroundReminder({ ...updatedReminder, ...updates } as Reminder);
+    // Para apps nativos, reagenda a notificação local se necessário
+    if (isNativePlatform()) {
+      const reminder = reminders.find(r => r.id === id);
+      if (reminder?.localNotificationId) {
+        await cancelLocalNotification(reminder.localNotificationId);
+      }
+      
+      // Se ainda está ativo, reagenda
+      if (updates.isActive !== false) {
+        const updatedReminder = { ...reminder, ...updates } as Reminder;
+        if (updatedReminder.isActive) {
+          await scheduleReminderForToday(
+            updatedReminder.title,
+            updatedReminder.description || 'É hora do seu foco! 🚀',
+            updatedReminder.time,
+            {
+              reminderType: updatedReminder.type,
+              reminderId: updatedReminder.id
+            }
+          );
+        }
       }
     }
   };
 
   const deleteReminder = async (id: string) => {
-    setReminders(prev => prev.filter(reminder => reminder.id !== id));
+    const reminder = reminders.find(r => r.id === id);
     
-    // Para apps nativos, cancela a notificação agendada
-    if (isNativeAndroidApp()) {
-      await cancelBackgroundReminder(id);
+    // Cancela notificação local se existir
+    if (isNativePlatform() && reminder?.localNotificationId) {
+      await cancelLocalNotification(reminder.localNotificationId);
     }
+    
+    setReminders(prev => prev.filter(reminder => reminder.id !== id));
   };
 
   const toggleReminder = async (id: string) => {
@@ -333,23 +290,13 @@ export const useReminders = () => {
     }
   };
 
-  // Função para ativar o estilo de balão para um lembrete
+  // Função placeholder para compatibilidade
   const toggleBalloonStyle = async (id: string) => {
-    const reminder = reminders.find(r => r.id === id);
-    
-    if (reminder) {
-      const newValue = !reminder.useBalloonStyle;
-      await updateReminder(id, { useBalloonStyle: newValue });
-      
-      toast({
-        title: newValue ? "🎈 Estilo balão ativado!" : "🔔 Estilo padrão ativado",
-        description: newValue 
-          ? "Este lembrete aparecerá como balão de conversa" 
-          : "Este lembrete usará o estilo padrão de notificação",
-      });
-      
-      console.log(`🎈 Estilo balão ${newValue ? 'ativado' : 'desativado'} para:`, reminder.title);
-    }
+    // Para notificações locais, todas já são exibidas como balão no Android
+    toast({
+      title: "ℹ️ Notificações locais",
+      description: "Todas as notificações locais já são exibidas como balão no Android",
+    });
   };
 
   return {

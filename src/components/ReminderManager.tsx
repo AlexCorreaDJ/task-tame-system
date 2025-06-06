@@ -24,7 +24,7 @@ export const ReminderManager = () => {
   
   const [showAddForm, setShowAddForm] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState(false);
-  const [balloonAvailable] = useState(isNativeAndroid());
+  const [isNativeApp] = useState(isNativeAndroid());
 
   // Função para inicializar o áudio quando o usuário interagir
   const handleUserInteraction = () => {
@@ -83,7 +83,7 @@ export const ReminderManager = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl text-green-700 flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-full">
-                {balloonAvailable ? (
+                {isNativeApp ? (
                   <MessageCircle className="h-6 w-6 text-green-600" />
                 ) : (
                   <Bell className="h-6 w-6 text-green-600" />
@@ -92,8 +92,8 @@ export const ReminderManager = () => {
               <div>
                 <h2 className="font-bold">Lembretes Motivacionais</h2>
                 <p className="text-sm text-green-600 font-normal">
-                  {balloonAvailable ? 
-                    'Mantenha seu foco com notificações em balão! 💬' : 
+                  {isNativeApp ? 
+                    'Notificações locais em balão automático! 📱💬' : 
                     'Mantenha seu foco e produtividade! 🎯'}
                 </p>
               </div>
@@ -111,8 +111,26 @@ export const ReminderManager = () => {
             </Button>
           </div>
           
+          {/* Banner informativo para app nativo */}
+          {isNativeApp && (
+            <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+              <div className="flex items-start">
+                <MessageCircle className="h-5 w-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+                <div>
+                  <p className="text-blue-800 font-medium mb-1">
+                    🎉 Notificações Locais Ativadas!
+                  </p>
+                  <p className="text-blue-700">
+                    Seus lembretes aparecerão automaticamente como balões de notificação do Android, 
+                    mesmo com o app fechado! Não precisa de internet. 📱✨
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* Banner de permissão se necessário */}
-          {!notificationPermission && (
+          {!notificationPermission && !isNativeApp && (
             <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
               <div className="flex items-start">
                 <Bell className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
@@ -121,9 +139,7 @@ export const ReminderManager = () => {
                     Permita notificações para receber lembretes!
                   </p>
                   <p className="text-yellow-700 mb-3">
-                    {balloonAvailable ? 
-                      'Ative as notificações para receber lembretes em estilo balão, mesmo com o app fechado!' : 
-                      'Ative as notificações para receber lembretes, mesmo com o app em segundo plano!'}
+                    Ative as notificações para receber lembretes, mesmo com o app em segundo plano!
                   </p>
                   <Button
                     size="sm"
@@ -163,7 +179,9 @@ export const ReminderManager = () => {
             <div>
               <span>Meus Lembretes ({reminders.length})</span>
               <p className="text-sm text-gray-500 font-normal mt-1">
-                Mantenha sua sequência de foco! 🔥
+                {isNativeApp ? 
+                  'Agendados como notificações locais! 📱🔔' : 
+                  'Mantenha sua sequência de foco! 🔥'}
               </p>
             </div>
           </CardTitle>
@@ -173,10 +191,10 @@ export const ReminderManager = () => {
             reminders={reminders}
             notificationPermission={notificationPermission}
             onToggleReminder={toggleReminder}
-            onToggleBalloonStyle={balloonAvailable ? toggleBalloonStyle : undefined}
+            onToggleBalloonStyle={isNativeApp ? toggleBalloonStyle : undefined}
             onDeleteReminder={deleteReminder}
             onShowAddForm={() => setShowAddForm(true)}
-            onTestBalloon={balloonAvailable ? testBalloonNotification : undefined}
+            onTestBalloon={isNativeApp ? testBalloonNotification : undefined}
           />
         </CardContent>
       </Card>
