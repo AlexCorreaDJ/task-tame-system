@@ -1,167 +1,142 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Clock, Target, AlarmClock } from "lucide-react";
-import { Reminder } from "@/hooks/useReminders";
-import { toast } from "@/hooks/use-toast";
-import { createSystemAlarm, isAlarmSupported } from "@/utils/alarmIntegration";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Clock, MessageCircle } from 'lucide-react';
+import { Reminder } from '@/hooks/useReminders';
+import { isNativeAndroid } from '@/utils/firebaseNotifications';
 
 interface ReminderFormProps {
   onAddReminder: (reminderData: Omit<Reminder, 'id' | 'createdAt'>) => void;
   onCancel: () => void;
 }
 
-export const ReminderForm = ({ onAddReminder, onCancel }: ReminderFormProps) => {
-  const [newReminder, setNewReminder] = useState({
-    title: '',
-    description: '',
-    time: '',
-    type: 'custom' as Reminder['type']
-  });
-  const [createAlarm, setCreateAlarm] = useState(false);
+export const ReminderForm: React.FC<ReminderFormProps> = ({ onAddReminder, onCancel }) => {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [time, setTime] = useState('');
+  const [type, setType] = useState<Reminder['type']>('task');
+  const [isActive, setIsActive] = useState(true);
+  const [useBalloonStyle, setUseBalloonStyle] = useState(false);
 
-  const handleSubmit = async () => {
-    if (!newReminder.title || !newReminder.time) {
-      toast({
-        title: "⚠️ Campos obrigatórios",
-        description: "Preencha o título e horário do lembrete.",
-        variant: "destructive"
-      });
-      return;
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     
-    console.log('➕ Criando lembrete motivacional:', newReminder);
+    if (!title || !time) return;
     
-    // Cria o lembrete no app
     onAddReminder({
-      title: newReminder.title,
-      description: newReminder.description,
-      time: newReminder.time,
-      type: newReminder.type,
-      isActive: true
+      title,
+      description,
+      time,
+      type,
+      isActive,
+      useBalloonStyle: isNativeAndroid() ? useBalloonStyle : false,
     });
-
-    // Se solicitado, cria também um alarme no sistema
-    if (createAlarm) {
-      console.log('⏰ Criando alarme do sistema também...');
-      const alarmCreated = await createSystemAlarm(
-        newReminder.title, 
-        newReminder.time, 
-        newReminder.description
-      );
-      
-      if (alarmCreated) {
-        toast({
-          title: "🎯 Lembrete + Alarme criados!",
-          description: `Notificação às ${newReminder.time} + alarme no relógio! ⏰🔔`,
-        });
-      } else {
-        toast({
-          title: "🎯 Lembrete criado!",
-          description: `Você receberá uma notificação motivacional às ${newReminder.time}! ⏰`,
-        });
-      }
-    } else {
-      toast({
-        title: "🎯 Lembrete criado!",
-        description: `Você receberá uma notificação motivacional às ${newReminder.time}! ⏰`,
-      });
-    }
-
-    setNewReminder({ title: '', description: '', time: '', type: 'custom' });
-    setCreateAlarm(false);
+    
+    // Limpa o formulário
+    setTitle('');
+    setDescription('');
+    setTime('');
+    setType('task');
+    setIsActive(true);
+    setUseBalloonStyle(false);
   };
 
   return (
-    <div className="space-y-4">
-      <Input
-        placeholder="Ex: Hora de focar nas tarefas! 🎯"
-        value={newReminder.title}
-        onChange={(e) => setNewReminder({...newReminder, title: e.target.value})}
-        className="border-green-200 focus:border-green-400"
-      />
-      <Textarea
-        placeholder="Adicione uma mensagem motivacional... ✨"
-        value={newReminder.description}
-        onChange={(e) => setNewReminder({...newReminder, description: e.target.value})}
-        rows={2}
-        className="border-green-200 focus:border-green-400"
-      />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Horário
-          </label>
-          <Input
-            type="time"
-            value={newReminder.time}
-            onChange={(e) => setNewReminder({...newReminder, time: e.target.value})}
-            className="border-green-200 focus:border-green-400"
-          />
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-3">
+        <Input
+          placeholder="Título do lembrete"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+          maxLength={50}
+          className="border-green-200"
+        />
+        
+        <Textarea
+          placeholder="Descrição (opcional)"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="border-green-200"
+          maxLength={200}
+        />
+        
+        <div className="flex flex-wrap gap-3">
+          <div className="w-full sm:w-1/2 md:w-1/3">
+            <label className="text-sm text-gray-600 mb-1 block">Horário</label>
+            <div className="relative">
+              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+              <Input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                required
+                className="pl-9 border-green-200"
+              />
+            </div>
+          </div>
+          
+          <div className="w-full sm:w-1/2 md:w-1/3">
+            <label className="text-sm text-gray-600 mb-1 block">Tipo</label>
+            <Select value={type} onValueChange={(value: Reminder['type']) => setType(value)}>
+              <SelectTrigger className="border-green-200">
+                <SelectValue placeholder="Tipo de lembrete" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="task">Tarefa</SelectItem>
+                <SelectItem value="reading">Leitura</SelectItem>
+                <SelectItem value="project">Projeto</SelectItem>
+                <SelectItem value="break">Pausa</SelectItem>
+                <SelectItem value="custom">Personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <Target className="h-4 w-4" />
-            Categoria
-          </label>
-          <Select 
-            value={newReminder.type} 
-            onValueChange={(value: Reminder['type']) => setNewReminder({...newReminder, type: value})}
-          >
-            <SelectTrigger className="border-green-200 focus:border-green-400">
-              <SelectValue placeholder="Tipo do lembrete" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="custom">✨ Personalizado</SelectItem>
-              <SelectItem value="task">📋 Tarefa</SelectItem>
-              <SelectItem value="reading">📚 Leitura</SelectItem>
-              <SelectItem value="project">🎯 Projeto</SelectItem>
-              <SelectItem value="break">☕ Pausa</SelectItem>
-            </SelectContent>
-          </Select>
+        
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={isActive}
+              onCheckedChange={setIsActive}
+              id="active-status"
+            />
+            <Label htmlFor="active-status">Lembrete ativo</Label>
+          </div>
+          
+          {isNativeAndroid() && (
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={useBalloonStyle}
+                onCheckedChange={setUseBalloonStyle}
+                id="balloon-style"
+              />
+              <div className="flex items-center space-x-1">
+                <MessageCircle className="h-4 w-4 text-blue-500" />
+                <Label htmlFor="balloon-style">Estilo balão</Label>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       
-      {/* Opção para criar alarme no sistema */}
-      {isAlarmSupported() && (
-        <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <Checkbox
-            id="create-alarm"
-            checked={createAlarm}
-            onCheckedChange={(checked) => setCreateAlarm(checked === true)}
-            className="data-[state=checked]:bg-blue-600"
-          />
-          <label 
-            htmlFor="create-alarm" 
-            className="text-sm font-medium text-blue-700 flex items-center gap-2 cursor-pointer"
-          >
-            <AlarmClock className="h-4 w-4" />
-            Criar também um alarme no relógio do Android
-          </label>
-        </div>
-      )}
-      
-      <div className="flex gap-3">
-        <Button 
-          onClick={handleSubmit} 
-          className="bg-green-600 hover:bg-green-700 shadow-lg transform hover:scale-105 transition-all"
-        >
-          <Plus className="h-4 w-4 mr-2" />
+      <div className="flex space-x-2 pt-2">
+        <Button type="submit" className="bg-green-600 hover:bg-green-700">
           Criar Lembrete
         </Button>
-        <Button 
-          variant="outline" 
+        <Button
+          type="button"
           onClick={onCancel}
-          className="border-gray-300 hover:bg-gray-50"
+          variant="outline"
+          className="border-green-200 text-green-700"
         >
           Cancelar
         </Button>
       </div>
-    </div>
+    </form>
   );
 };

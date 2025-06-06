@@ -2,25 +2,29 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Bell, Clock } from "lucide-react";
+import { Plus, Bell, Clock, MessageCircle } from "lucide-react";
 import { useReminders } from "@/hooks/useReminders";
 import { toast } from "@/hooks/use-toast";
 import { ReminderForm } from "./reminders/ReminderForm";
 import { ReminderList } from "./reminders/ReminderList";
 import { initializeAudio } from "@/utils/audioNotifications";
+import { isNativeAndroid } from "@/utils/firebaseNotifications";
 
 export const ReminderManager = () => {
   const { 
     reminders, 
     addReminder, 
     deleteReminder, 
-    toggleReminder, 
+    toggleReminder,
+    toggleBalloonStyle,
+    testBalloonNotification, 
     requestNotificationPermission,
     startReminderSystem 
   } = useReminders();
   
   const [showAddForm, setShowAddForm] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState(false);
+  const [balloonAvailable] = useState(isNativeAndroid());
 
   // Função para inicializar o áudio quando o usuário interagir
   const handleUserInteraction = () => {
@@ -64,6 +68,11 @@ export const ReminderManager = () => {
   const handleAddReminder = (reminderData: Parameters<typeof addReminder>[0]) => {
     addReminder(reminderData);
     setShowAddForm(false);
+    
+    toast({
+      title: "✅ Lembrete criado!",
+      description: `Lembrete "${reminderData.title}" configurado para ${reminderData.time}`,
+    });
   };
 
   return (
@@ -74,11 +83,19 @@ export const ReminderManager = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl text-green-700 flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-full">
-                <Bell className="h-6 w-6 text-green-600" />
+                {balloonAvailable ? (
+                  <MessageCircle className="h-6 w-6 text-green-600" />
+                ) : (
+                  <Bell className="h-6 w-6 text-green-600" />
+                )}
               </div>
               <div>
                 <h2 className="font-bold">Lembretes Motivacionais</h2>
-                <p className="text-sm text-green-600 font-normal">Mantenha seu foco e produtividade! 🎯</p>
+                <p className="text-sm text-green-600 font-normal">
+                  {balloonAvailable ? 
+                    'Mantenha seu foco com notificações em balão! 💬' : 
+                    'Mantenha seu foco e produtividade! 🎯'}
+                </p>
               </div>
             </CardTitle>
             <Button 
@@ -93,6 +110,37 @@ export const ReminderManager = () => {
               Novo Lembrete
             </Button>
           </div>
+          
+          {/* Banner de permissão se necessário */}
+          {!notificationPermission && (
+            <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
+              <div className="flex items-start">
+                <Bell className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
+                <div>
+                  <p className="text-yellow-800 font-medium mb-2">
+                    Permita notificações para receber lembretes!
+                  </p>
+                  <p className="text-yellow-700 mb-3">
+                    {balloonAvailable ? 
+                      'Ative as notificações para receber lembretes em estilo balão, mesmo com o app fechado!' : 
+                      'Ative as notificações para receber lembretes, mesmo com o app em segundo plano!'}
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      requestNotificationPermission().then(granted => {
+                        setNotificationPermission(granted);
+                      });
+                    }}
+                    className="bg-yellow-600 hover:bg-yellow-700"
+                  >
+                    <Bell className="h-4 w-4 mr-2" />
+                    Permitir Notificações
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </CardHeader>
         
         {showAddForm && (
@@ -125,8 +173,10 @@ export const ReminderManager = () => {
             reminders={reminders}
             notificationPermission={notificationPermission}
             onToggleReminder={toggleReminder}
+            onToggleBalloonStyle={balloonAvailable ? toggleBalloonStyle : undefined}
             onDeleteReminder={deleteReminder}
             onShowAddForm={() => setShowAddForm(true)}
+            onTestBalloon={balloonAvailable ? testBalloonNotification : undefined}
           />
         </CardContent>
       </Card>

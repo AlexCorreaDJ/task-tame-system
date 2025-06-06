@@ -36,14 +36,51 @@ const config: CapacitorConfig = {
       // Configurações para funcionar em segundo plano
       requestPermissions: true,
       scheduleOn: "trigger",
+      // Habilitando configurações de estilo balão para Android
+      actionTypes: [
+        {
+          id: "REMINDER_ACTION",
+          actions: [
+            {
+              id: "view",
+              title: "Ver"
+            },
+            {
+              id: "dismiss",
+              title: "Dispensar",
+              destructive: true
+            }
+          ]
+        }
+      ]
     },
   },
   android: {
     allowMixedContent: true,
     captureInput: true,
     webContentsDebuggingEnabled: true,
+    backgroundColor: "#ffffff",
     // Permite que o app funcione em segundo plano
     useLegacyBridge: false,
+    // Configurações para notificações em estilo balão
+    intentFilters: [
+      {
+        action: "android.intent.action.VIEW",
+        autoVerify: true,
+        data: {
+          scheme: "tdahfocus",
+        },
+        category: [
+          "android.intent.category.DEFAULT",
+          "android.intent.category.BROWSABLE"
+        ]
+      }
+    ],
+    // Configurações adicionais para FCM
+    includePlugins: [
+      "@capacitor/push-notifications",
+      "@capacitor/local-notifications"
+    ],
   },
 };
 
