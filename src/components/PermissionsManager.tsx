@@ -26,41 +26,29 @@ export const PermissionsManager = () => {
 
   useEffect(() => {
     initializePermissions();
-    
-    // Se é primeira vez, solicita permissões automaticamente
+  }, []);
+
+  useEffect(() => {
+    // Se é primeira vez E não está solicitando, executa UMA VEZ
     if (isFirstTime && !isRequestingPermissions) {
-      // Aguarda um pouco para a interface carregar
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         requestAllPermissionsOnFirstTime();
       }, 1500);
+      
+      return () => clearTimeout(timer);
     }
-    
-    // Verifica permissões a cada 3 segundos para detectar mudanças manuais
-    const interval = setInterval(() => {
-      checkPermissionsQuietly();
-    }, 3000);
-    
-    // Verifica quando a página volta ao foco
-    const handleFocus = () => {
-      setTimeout(() => {
-        checkPermissionsQuietly();
-      }, 1000);
-    };
-    
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        setTimeout(() => {
-          checkPermissionsQuietly();
-        }, 1000);
-      }
-    });
+  }, [isFirstTime, isRequestingPermissions, requestAllPermissionsOnFirstTime]);
 
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [isFirstTime, isRequestingPermissions]);
+  useEffect(() => {
+    // Verifica permissões periodicamente apenas se não é primeira vez
+    if (!isFirstTime) {
+      const interval = setInterval(() => {
+        checkPermissionsQuietly();
+      }, 5000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isFirstTime]);
 
   const initializePermissions = async () => {
     console.log('Inicializando verificação de permissões...');
@@ -86,7 +74,6 @@ export const PermissionsManager = () => {
       const updatedPermissions = await checkAllPermissions(permissions);
       setPermissions(updatedPermissions);
       
-      // Verifica se alguma permissão foi concedida
       const newlyGranted = updatedPermissions.filter((perm, index) => 
         permissions[index].status !== 'granted' && perm.status === 'granted'
       );

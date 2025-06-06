@@ -8,12 +8,14 @@ export const useFirstTimeSetup = () => {
   const [isFirstTime, setIsFirstTime] = useLocalStorage('focusflow-first-time', true);
   const [isSetupComplete, setIsSetupComplete] = useState(false);
   const [isRequestingPermissions, setIsRequestingPermissions] = useState(false);
+  const [hasAttemptedSetup, setHasAttemptedSetup] = useState(false);
 
   const requestAllPermissionsOnFirstTime = async () => {
-    if (!isFirstTime || isRequestingPermissions) return;
+    if (!isFirstTime || isRequestingPermissions || hasAttemptedSetup) return;
     
     console.log('🎯 Primeiro acesso detectado! Solicitando permissões automaticamente...');
     setIsRequestingPermissions(true);
+    setHasAttemptedSetup(true);
 
     try {
       // Toast de boas-vindas
@@ -51,9 +53,13 @@ export const useFirstTimeSetup = () => {
         }
       }
 
+      // Marca como não sendo mais o primeiro acesso SEMPRE após tentar
+      setIsFirstTime(false);
+
       // Feedback do resultado
       if (notificationGranted && storageGranted) {
         console.log('✅ Configuração completa com sucesso!');
+        setIsSetupComplete(true);
         
         if (isNativeAndroidApp()) {
           toast({
@@ -66,10 +72,6 @@ export const useFirstTimeSetup = () => {
             description: "Todas as permissões foram concedidas! Seu app está pronto! 🚀",
           });
         }
-
-        // Marca como não sendo mais o primeiro acesso
-        setIsFirstTime(false);
-        setIsSetupComplete(true);
       } else {
         console.log('⚠️ Algumas permissões não foram concedidas');
         
@@ -90,6 +92,9 @@ export const useFirstTimeSetup = () => {
 
     } catch (error) {
       console.error('❌ Erro na configuração inicial:', error);
+      // Marca como não sendo mais o primeiro acesso mesmo com erro
+      setIsFirstTime(false);
+      
       toast({
         title: "❌ Erro na configuração",
         description: "Houve um problema. Você pode configurar manualmente depois.",
@@ -103,6 +108,7 @@ export const useFirstTimeSetup = () => {
   const resetFirstTimeSetup = () => {
     setIsFirstTime(true);
     setIsSetupComplete(false);
+    setHasAttemptedSetup(false);
   };
 
   return {
