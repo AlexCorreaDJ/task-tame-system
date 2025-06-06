@@ -1,4 +1,3 @@
-
 import { useLocalStorage } from './useLocalStorage';
 import { toast } from '@/hooks/use-toast';
 
@@ -16,45 +15,104 @@ export interface Reminder {
 export const useReminders = () => {
   const [reminders, setReminders] = useLocalStorage<Reminder[]>('focusflow-reminders', []);
 
-  // Função para mostrar notificação nativa com som
+  // Função para mostrar notificação estilo Duolingo
   const showNotification = (reminder: Reminder) => {
-    console.log('Tentando mostrar notificação para:', reminder.title);
+    console.log('🔔 Mostrando notificação estilo Duolingo para:', reminder.title);
     
     if ('Notification' in window && Notification.permission === 'granted') {
-      console.log('Criando notificação nativa...');
+      console.log('✅ Criando notificação nativa estilo Duolingo...');
       
-      // Cria a notificação nativa com som
+      // Vibração para chamar atenção (como o Duolingo)
+      if ('vibrate' in navigator) {
+        navigator.vibrate([100, 50, 100, 50, 200]); // Padrão de vibração
+        console.log('📳 Vibração ativada');
+      }
+
+      // Cria a notificação com configurações estilo Duolingo
       const notification = new Notification(reminder.title, {
-        body: reminder.description || 'Hora do seu lembrete!',
+        body: reminder.description || 'É hora do seu foco! 🎯',
         icon: '/favicon.ico',
-        tag: reminder.id,
         badge: '/favicon.ico',
-        // Garante que a notificação faça som
-        silent: false,
-        requireInteraction: true // Mantém a notificação até o usuário interagir
+        tag: `tdahfocus-${reminder.id}`, // Tag única para evitar duplicatas
+        image: '/favicon.ico', // Imagem grande (como o Duolingo)
+        
+        // Configurações estilo Duolingo
+        silent: false, // COM som
+        requireInteraction: true, // Usuário precisa interagir
+        renotify: true, // Permite renotificação
+        
+        // Dados extras para a notificação
+        data: {
+          reminderType: reminder.type,
+          reminderId: reminder.id,
+          timestamp: Date.now()
+        },
+        
+        // Actions (botões na notificação) - como o Duolingo
+        actions: [
+          {
+            action: 'start-focus',
+            title: '🎯 Começar Agora',
+            icon: '/favicon.ico'
+          },
+          {
+            action: 'remind-later',
+            title: '⏰ Lembrar em 5min',
+            icon: '/favicon.ico'
+          }
+        ]
       });
 
-      // Log quando a notificação é mostrada
+      // Eventos da notificação (como o Duolingo)
       notification.onshow = () => {
-        console.log('Notificação mostrada com sucesso!');
+        console.log('🎉 Notificação mostrada com sucesso!');
+        
+        // Som personalizado adicional (se suportado)
+        if ('AudioContext' in window) {
+          try {
+            const audioContext = new AudioContext();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800; // Frequência agradável
+            gainNode.gain.value = 0.1; // Volume baixo
+            
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.2); // 200ms
+          } catch (error) {
+            console.log('Som personalizado não disponível');
+          }
+        }
       };
 
-      // Log se houver erro
+      notification.onclick = () => {
+        console.log('👆 Usuário clicou na notificação');
+        // Foca na janela/app quando clicar
+        if (window.focus) {
+          window.focus();
+        }
+        notification.close();
+      };
+
       notification.onerror = (error) => {
-        console.error('Erro na notificação:', error);
+        console.error('❌ Erro na notificação:', error);
       };
 
-      // Auto-fechar após 10 segundos se o usuário não interagir
+      // Auto-fechar após 30 segundos (como o Duolingo)
       setTimeout(() => {
         notification.close();
-      }, 10000);
+        console.log('⏰ Notificação fechada automaticamente após 30s');
+      }, 30000);
       
     } else {
-      console.log('Notificações não permitidas, mostrando toast...');
+      console.log('❌ Notificações não permitidas, mostrando toast...');
       // Fallback para toast se notificações não estiverem disponíveis
       toast({
-        title: reminder.title,
-        description: reminder.description || 'Hora do seu lembrete!',
+        title: `🔔 ${reminder.title}`,
+        description: reminder.description || 'É hora do seu foco! 🎯',
       });
     }
   };
@@ -64,11 +122,11 @@ export const useReminders = () => {
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     
-    console.log('Verificando lembretes para:', currentTime);
+    console.log('🕐 Verificando lembretes para:', currentTime);
     
     reminders.forEach(reminder => {
       if (reminder.isActive && reminder.time === currentTime) {
-        console.log('Lembrete encontrado:', reminder.title, 'para', currentTime);
+        console.log('🎯 Lembrete encontrado:', reminder.title, 'para', currentTime);
         showNotification(reminder);
       }
     });
@@ -76,7 +134,7 @@ export const useReminders = () => {
 
   // Inicia o sistema de verificação de lembretes
   const startReminderSystem = () => {
-    console.log('Iniciando sistema de lembretes...');
+    console.log('🚀 Iniciando sistema de lembretes estilo Duolingo...');
     
     // Verifica imediatamente
     checkReminders();
@@ -85,52 +143,84 @@ export const useReminders = () => {
     const interval = setInterval(checkReminders, 60000);
     
     return () => {
-      console.log('Parando sistema de lembretes...');
+      console.log('⏹️ Parando sistema de lembretes...');
       clearInterval(interval);
     };
   };
 
-  // Função para solicitar permissão de notificação
+  // Função para solicitar permissão de notificação (estilo Duolingo)
   const requestNotificationPermission = async () => {
-    console.log('Solicitando permissão de notificação...');
+    console.log('🔔 Solicitando permissão de notificação estilo Duolingo...');
     
     if (!('Notification' in window)) {
-      console.log('Notification API não disponível');
+      console.log('❌ Notification API não disponível');
       return false;
     }
 
     if (Notification.permission === 'granted') {
-      console.log('Permissão já concedida');
+      console.log('✅ Permissão já concedida');
+      
+      // Testa com uma notificação estilo Duolingo
+      setTimeout(() => {
+        const testNotification = new Notification('🎉 TDAHFOCUS', {
+          body: 'Notificações ativadas! Agora você receberá lembretes motivacionais como este. 🚀',
+          icon: '/favicon.ico',
+          badge: '/favicon.ico',
+          tag: 'tdahfocus-welcome',
+          silent: false,
+          requireInteraction: true,
+          data: { type: 'welcome' }
+        });
+        
+        // Vibração de boas-vindas
+        if ('vibrate' in navigator) {
+          navigator.vibrate([200, 100, 200]);
+        }
+        
+        setTimeout(() => {
+          testNotification.close();
+        }, 5000);
+      }, 500);
+      
       return true;
     }
 
     if (Notification.permission === 'denied') {
-      console.log('Permissão negada pelo usuário');
+      console.log('❌ Permissão negada pelo usuário');
       return false;
     }
 
     try {
       const permission = await Notification.requestPermission();
-      console.log('Resultado da permissão:', permission);
+      console.log('📋 Resultado da permissão:', permission);
       
       if (permission === 'granted') {
-        // Testa com uma notificação imediata
+        // Notificação de boas-vindas estilo Duolingo
         setTimeout(() => {
-          const testNotification = new Notification('TDAHFOCUS', {
-            body: 'Notificações ativadas! Você receberá lembretes com som.',
+          const welcomeNotification = new Notification('🎉 Bem-vindo ao TDAHFOCUS!', {
+            body: 'Agora você receberá lembretes motivacionais para manter seu foco! 🎯✨',
             icon: '/favicon.ico',
-            silent: false
+            badge: '/favicon.ico',
+            tag: 'tdahfocus-welcome',
+            silent: false,
+            requireInteraction: true,
+            data: { type: 'welcome' }
           });
           
+          // Vibração de comemoração
+          if ('vibrate' in navigator) {
+            navigator.vibrate([100, 50, 100, 50, 200, 100, 300]);
+          }
+          
           setTimeout(() => {
-            testNotification.close();
-          }, 3000);
-        }, 500);
+            welcomeNotification.close();
+          }, 6000);
+        }, 1000);
         
         return true;
       }
     } catch (error) {
-      console.error('Erro ao solicitar permissão:', error);
+      console.error('❌ Erro ao solicitar permissão:', error);
     }
     
     return false;
@@ -143,7 +233,7 @@ export const useReminders = () => {
       createdAt: new Date().toISOString()
     };
     
-    console.log('Adicionando novo lembrete:', newReminder);
+    console.log('➕ Adicionando novo lembrete:', newReminder);
     setReminders(prev => [...prev, newReminder]);
     return newReminder;
   };
@@ -162,7 +252,7 @@ export const useReminders = () => {
     const reminder = reminders.find(r => r.id === id);
     if (reminder) {
       updateReminder(id, { isActive: !reminder.isActive });
-      console.log('Lembrete', reminder.isActive ? 'desativado' : 'ativado', ':', reminder.title);
+      console.log('🔄 Lembrete', reminder.isActive ? 'desativado' : 'ativado', ':', reminder.title);
     }
   };
 
