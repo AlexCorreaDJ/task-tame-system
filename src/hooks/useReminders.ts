@@ -8,6 +8,12 @@ import {
   isNativeAndroidApp,
   isWebAndroidApp
 } from '@/utils/androidNotifications';
+import {
+  scheduleBackgroundReminder,
+  cancelBackgroundReminder,
+  scheduleAllActiveReminders,
+  initializeBackgroundNotifications
+} from '@/utils/backgroundNotifications';
 
 export interface Reminder {
   id: string;
@@ -46,8 +52,14 @@ export const useReminders = () => {
     }
   };
 
-  // Função para verificar lembretes - roda a cada minuto
+  // Função para verificar lembretes - roda a cada minuto (backup para web)
   const checkReminders = () => {
+    // Para apps nativos, as notificações são agendadas em segundo plano
+    if (isNativeAndroidApp()) {
+      console.log('📱 App nativo: notificações gerenciadas pelo sistema');
+      return;
+    }
+
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     
@@ -62,13 +74,34 @@ export const useReminders = () => {
   };
 
   // Inicia o sistema de verificação de lembretes
-  const startReminderSystem = () => {
+  const startReminderSystem = async () => {
     console.log('🚀 Iniciando sistema de lembretes motivacionais...');
     
-    // Log da plataforma detectada
+    // Para apps nativos Android - usa notificações agendadas
     if (isNativeAndroidApp()) {
-      console.log('📱 Plataforma: App nativo Android (Capacitor) - Notificações locais ativas');
-    } else if (isWebAndroidApp()) {
+      console.log('📱 App nativo Android: inicializando sistema de segundo plano...');
+      
+      const initialized = await initializeBackgroundNotifications();
+      if (initialized) {
+        // Agenda todos os lembretes ativos
+        await scheduleAllActiveReminders(reminders);
+        
+        toast({
+          title: "🎉 Sistema ativado!",
+          description: "Lembretes configurados para funcionar em segundo plano! 📱🔔",
+        });
+      }
+      
+      return () => {
+        console.log('⏹️ Sistema de segundo plano não precisa ser parado');
+      };
+    }
+    
+    // Para web/PWA - usa verificação manual
+    console.log('🌐 App web: usando verificação manual a cada minuto');
+    
+    // Log da plataforma detectada
+    if (isWebAndroidApp()) {
       console.log('🌐 Plataforma: App web Android (PWA/WebView)');
     } else {
       console.log('💻 Plataforma: Web/Desktop');
@@ -95,6 +128,14 @@ export const useReminders = () => {
     if (granted) {
       console.log('✅ Permissão concedida com sucesso');
       
+      // Para apps nativos, inicializa o sistema de segundo plano
+      if (isNativeAndroidApp()) {
+        const initialized = await initializeBackgroundNotifications();
+        if (initialized) {
+          await scheduleAllActiveReminders(reminders);
+        }
+      }
+      
       // Notificação de teste para confirmar funcionamento
       setTimeout(() => {
         const success = showAndroidNotification(
@@ -117,7 +158,7 @@ export const useReminders = () => {
     return granted;
   };
 
-  const addReminder = (reminderData: Omit<Reminder, 'id' | 'createdAt'>) => {
+  const addReminder = async (reminderData: Omit<Reminder, 'id' | 'createdAt'>) => {
     const newReminder: Reminder = {
       ...reminderData,
       id: Date.now().toString(),
@@ -126,23 +167,43 @@ export const useReminders = () => {
     
     console.log('➕ Adicionando novo lembrete:', newReminder);
     setReminders(prev => [...prev, newReminder]);
+    
+    // Para apps nativos, agenda a notificação imediatamente
+    if (isNativeAndroidApp() && newReminder.isActive) {
+      await scheduleBackgroundReminder(newReminder);
+    }
+    
     return newReminder;
   };
 
-  const updateReminder = (id: string, updates: Partial<Reminder>) => {
+  const updateReminder = async (id: string, updates: Partial<Reminder>) => {
     setReminders(prev => prev.map(reminder => 
       reminder.id === id ? { ...reminder, ...updates } : reminder
     ));
+    
+    // Para apps nativos, reagenda a notificação
+    if (isNativeAndroidApp()) {
+      await cancelBackgroundReminder(id);
+      const updatedReminder = reminders.find(r => r.id === id);
+      if (updatedReminder && updates.isActive !== false) {
+        await scheduleBackgroundReminder({ ...updatedReminder, ...updates } as Reminder);
+      }
+    }
   };
 
-  const deleteReminder = (id: string) => {
+  const deleteReminder = async (id: string) => {
     setReminders(prev => prev.filter(reminder => reminder.id !== id));
+    
+    // Para apps nativos, cancela a notificação agendada
+    if (isNativeAndroidApp()) {
+      await cancelBackgroundReminder(id);
+    }
   };
 
-  const toggleReminder = (id: string) => {
+  const toggleReminder = async (id: string) => {
     const reminder = reminders.find(r => r.id === id);
     if (reminder) {
-      updateReminder(id, { isActive: !reminder.isActive });
+      await updateReminder(id, { isActive: !reminder.isActive });
       console.log('🔄 Lembrete', reminder.isActive ? 'desativado' : 'ativado', ':', reminder.title);
     }
   };

@@ -33,12 +33,17 @@ const config: CapacitorConfig = {
       smallIcon: "ic_notification",
       iconColor: "#4F46E5",
       sound: "default",
+      // Configurações para funcionar em segundo plano
+      requestPermissions: true,
+      scheduleOn: "trigger",
     },
   },
   android: {
     allowMixedContent: true,
     captureInput: true,
     webContentsDebuggingEnabled: true,
+    // Permite que o app funcione em segundo plano
+    useLegacyBridge: false,
   },
 };
 
