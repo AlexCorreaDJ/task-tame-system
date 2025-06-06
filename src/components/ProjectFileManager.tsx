@@ -4,18 +4,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Upload, File, Image, FileText, Music, Video, X, Download } from "lucide-react";
+import { Upload, File, Image, FileText, Music, Video, X, Download, AlertCircle, CheckCircle } from "lucide-react";
 import { ProjectFile } from "@/hooks/useProjects";
+import { ALLOWED_FILE_TYPES, FILE_SIZE_LIMITS } from "@/utils/security";
+import { toast } from "@/hooks/use-toast";
 
 interface ProjectFileManagerProps {
   projectId: string;
   files: ProjectFile[];
-  onAddFile: (projectId: string, file: File) => void;
-  onRemoveFile: (projectId: string, fileId: string) => void;
+  onAddFile: (projectId: string, file: File) => Promise<{ success: boolean; error?: string }>;
+  onRemoveFile: (projectId: string, fileId: string) => boolean;
 }
 
 export const ProjectFileManager = ({ projectId, files, onAddFile, onRemoveFile }: ProjectFileManagerProps) => {
   const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getFileIcon = (type: string) => {
@@ -34,40 +37,101 @@ export const ProjectFileManager = ({ projectId, files, onAddFile, onRemoveFile }
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const handleFilesUpload = async (fileList: FileList) => {
+    if (uploading) return;
+    
+    setUploading(true);
+    const uploadPromises = Array.from(fileList).map(async (file) => {
+      const result = await onAddFile(projectId, file);
+      
+      if (result.success) {
+        toast({
+          title: "Arquivo enviado",
+          description: `${file.name} foi adicionado com sucesso`,
+        });
+      } else {
+        toast({
+          title: "Erro no upload",
+          description: result.error || "Falha ao enviar arquivo",
+          variant: "destructive"
+        });
+      }
+      
+      return result;
+    });
+
+    await Promise.all(uploadPromises);
+    setUploading(false);
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
     
-    const droppedFiles = Array.from(e.dataTransfer.files);
-    droppedFiles.forEach(file => {
-      onAddFile(projectId, file);
-    });
+    if (e.dataTransfer.files.length > 0) {
+      handleFilesUpload(e.dataTransfer.files);
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []);
-    selectedFiles.forEach(file => {
-      onAddFile(projectId, file);
-    });
+    if (e.target.files && e.target.files.length > 0) {
+      handleFilesUpload(e.target.files);
+    }
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  const downloadFile = (file: ProjectFile) => {
-    const link = document.createElement('a');
-    link.href = file.url;
-    link.download = file.name;
-    link.click();
+  const handleRemoveFile = (fileId: string) => {
+    const success = onRemoveFile(projectId, fileId);
+    if (success) {
+      toast({
+        title: "Arquivo removido",
+        description: "O arquivo foi removido do projeto",
+      });
+    } else {
+      toast({
+        title: "Erro",
+        description: "Não foi possível remover o arquivo",
+        variant: "destructive"
+      });
+    }
   };
+
+  const downloadFile = (file: ProjectFile) => {
+    try {
+      const link = document.createElement('a');
+      link.href = file.url;
+      link.download = file.name;
+      link.click();
+    } catch (error) {
+      toast({
+        title: "Erro no download",
+        description: "Não foi possível baixar o arquivo",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const allowedTypesText = ALLOWED_FILE_TYPES.all.join(', ');
+  const maxSizeText = `${FILE_SIZE_LIMITS.default / 1024 / 1024}MB`;
 
   return (
     <div className="space-y-4">
+      {/* Security Info */}
+      <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+        <CheckCircle className="h-4 w-4 text-blue-500 mt-0.5" />
+        <div className="text-sm text-blue-700">
+          <p className="font-medium">Arquivos seguros</p>
+          <p>Tamanho máximo: {maxSizeText} | Tipos permitidos: PDF, imagens, documentos</p>
+        </div>
+      </div>
+
       {/* Upload Area */}
       <div
         className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
           dragOver ? 'border-purple-400 bg-purple-50' : 'border-gray-300 hover:border-purple-300'
-        }`}
+        } ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
         onDrop={handleDrop}
         onDragOver={(e) => {
           e.preventDefault();
@@ -77,7 +141,7 @@ export const ProjectFileManager = ({ projectId, files, onAddFile, onRemoveFile }
       >
         <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
         <p className="text-gray-600 mb-4">
-          Arraste arquivos aqui ou clique para selecionar
+          {uploading ? 'Enviando arquivos...' : 'Arraste arquivos aqui ou clique para selecionar'}
         </p>
         <input
           ref={fileInputRef}
@@ -85,15 +149,17 @@ export const ProjectFileManager = ({ projectId, files, onAddFile, onRemoveFile }
           multiple
           onChange={handleFileSelect}
           className="hidden"
-          accept="*/*"
+          accept={ALLOWED_FILE_TYPES.all.join(',')}
+          disabled={uploading}
         />
         <Button
           onClick={() => fileInputRef.current?.click()}
           variant="outline"
           className="border-purple-300 text-purple-700 hover:bg-purple-50"
+          disabled={uploading}
         >
           <Upload className="h-4 w-4 mr-2" />
-          Selecionar Arquivos
+          {uploading ? 'Enviando...' : 'Selecionar Arquivos'}
         </Button>
       </div>
 
@@ -111,7 +177,7 @@ export const ProjectFileManager = ({ projectId, files, onAddFile, onRemoveFile }
                       size="sm"
                       variant="ghost"
                       className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
-                      onClick={() => onRemoveFile(projectId, file.id)}
+                      onClick={() => handleRemoveFile(file.id)}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -150,6 +216,10 @@ export const ProjectFileManager = ({ projectId, files, onAddFile, onRemoveFile }
                               src={file.url}
                               alt={file.name}
                               className="max-w-full max-h-96 object-contain"
+                              onError={(e) => {
+                                console.warn('Erro ao carregar imagem:', file.name);
+                                e.currentTarget.style.display = 'none';
+                              }}
                             />
                           </div>
                         </DialogContent>

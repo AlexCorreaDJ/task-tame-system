@@ -22,13 +22,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, Settings, LogOut, Bell, Clock, Palette } from "lucide-react";
+import { User, Settings, LogOut, Bell, Clock, Palette, AlertCircle } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { toast } from "@/hooks/use-toast";
 
 export const UserProfileMenu = () => {
   const { profile, updateProfile, updatePreferences } = useUserProfile();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const getInitials = (name: string) => {
     return name
@@ -40,11 +42,36 @@ export const UserProfileMenu = () => {
   };
 
   const handleProfileUpdate = (field: string, value: string) => {
-    updateProfile({ [field]: value });
+    const success = updateProfile({ [field]: value });
+    if (!success) {
+      toast({
+        title: "Erro de validação",
+        description: "Verifique os dados inseridos",
+        variant: "destructive"
+      });
+    } else {
+      setValidationErrors([]);
+      toast({
+        title: "Perfil atualizado",
+        description: "Suas informações foram salvas com sucesso"
+      });
+    }
   };
 
   const handlePreferenceUpdate = (field: string, value: any) => {
-    updatePreferences({ [field]: value });
+    const success = updatePreferences({ [field]: value });
+    if (!success) {
+      toast({
+        title: "Erro de validação",
+        description: "Valor inválido para esta configuração",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Configurações atualizadas",
+        description: "Suas preferências foram salvas"
+      });
+    }
   };
 
   return (
@@ -95,6 +122,18 @@ export const UserProfileMenu = () => {
               Atualize suas informações pessoais aqui.
             </DialogDescription>
           </DialogHeader>
+          
+          {validationErrors.length > 0 && (
+            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
+              <AlertCircle className="h-4 w-4 text-red-500 mt-0.5" />
+              <div className="text-sm text-red-700">
+                {validationErrors.map((error, index) => (
+                  <div key={index}>{error}</div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
@@ -105,6 +144,8 @@ export const UserProfileMenu = () => {
                 value={profile.name}
                 onChange={(e) => handleProfileUpdate('name', e.target.value)}
                 className="col-span-3"
+                maxLength={50}
+                placeholder="Seu nome completo"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -113,9 +154,11 @@ export const UserProfileMenu = () => {
               </Label>
               <Input
                 id="email"
+                type="email"
                 value={profile.email}
                 onChange={(e) => handleProfileUpdate('email', e.target.value)}
                 className="col-span-3"
+                placeholder="seu@email.com"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -124,6 +167,7 @@ export const UserProfileMenu = () => {
               </Label>
               <Input
                 id="avatar"
+                type="url"
                 value={profile.avatar || ''}
                 onChange={(e) => handleProfileUpdate('avatar', e.target.value)}
                 className="col-span-3"
@@ -133,7 +177,7 @@ export const UserProfileMenu = () => {
           </div>
           <div className="flex justify-end">
             <Button onClick={() => setIsProfileOpen(false)}>
-              Salvar alterações
+              Fechar
             </Button>
           </div>
         </DialogContent>
@@ -224,7 +268,7 @@ export const UserProfileMenu = () => {
           </div>
           <div className="flex justify-end">
             <Button onClick={() => setIsSettingsOpen(false)}>
-              Salvar configurações
+              Fechar
             </Button>
           </div>
         </DialogContent>
