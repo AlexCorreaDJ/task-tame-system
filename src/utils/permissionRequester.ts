@@ -1,58 +1,10 @@
 import { Permission } from "@/types/permissions";
 import { toast } from "@/hooks/use-toast";
-
-const isAndroidApp = () => {
-  const userAgent = navigator.userAgent;
-  const isAndroid = /Android/i.test(userAgent);
-  const isCapacitor = !!(window as any).Capacitor;
-  const isWebView = /wv|WebView/i.test(userAgent);
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-  
-  return isAndroid && (isCapacitor || isWebView || isStandalone);
-};
-
-// Função específica para solicitar permissão no Android
-const requestAndroidNotificationPermission = async (): Promise<Permission['status']> => {
-  console.log('📱 Solicitando permissão de notificação no Android...');
-  
-  try {
-    // Para Android, força a solicitação mesmo se o status for 'default'
-    const permission = await Notification.requestPermission();
-    console.log('📱 Resposta da solicitação Android:', permission);
-    
-    if (permission === 'granted') {
-      // Testa imediatamente com uma notificação
-      setTimeout(() => {
-        try {
-          const testNotification = new Notification('🎉 TDAHFOCUS - Permissão Concedida!', {
-            body: 'Agora você receberá notificações na barra de notificações do Android! 📱🔔',
-            icon: '/favicon.ico',
-            tag: 'android-welcome',
-            silent: false,
-            requireInteraction: true
-          });
-          
-          console.log('📱 Notificação de teste criada para Android');
-          
-          setTimeout(() => {
-            testNotification.close();
-          }, 6000);
-        } catch (error) {
-          console.error('❌ Erro ao criar notificação de teste:', error);
-        }
-      }, 1000);
-      
-      return 'granted';
-    } else if (permission === 'denied') {
-      return 'denied';
-    } else {
-      return 'prompt';
-    }
-  } catch (error) {
-    console.error('❌ Erro ao solicitar permissão no Android:', error);
-    return 'denied';
-  }
-};
+import { 
+  requestAndroidNotificationPermission, 
+  isNativeAndroidApp, 
+  isWebAndroidApp 
+} from './androidNotifications';
 
 export const requestPermission = async (permissionId: string): Promise<Permission['status']> => {
   console.log(`🔔 Solicitando permissão: ${permissionId}`);
@@ -62,122 +14,52 @@ export const requestPermission = async (permissionId: string): Promise<Permissio
 
     switch (permissionId) {
       case 'notifications':
-        const isApp = isAndroidApp();
-        console.log('📱 É aplicativo Android:', isApp);
+        console.log('📱 Solicitando permissão de notificações...');
         
-        // Verifica se a API está disponível
-        if (!('Notification' in window)) {
-          console.log('❌ API de Notification não disponível');
-          toast({
-            title: "❌ Notificações não suportadas",
-            description: "Este dispositivo não suporta notificações do sistema.",
-            variant: "destructive"
-          });
-          return 'denied';
-        }
-
-        console.log('✅ API de Notification disponível, status atual:', Notification.permission);
-        
-        // Para navegadores (não apps), verifica HTTPS
-        if (!isApp) {
-          const isSecure = location.protocol === 'https:' || 
-                          location.hostname === 'localhost' || 
-                          location.hostname === '127.0.0.1';
-          
-          if (!isSecure) {
-            toast({
-              title: "❌ Contexto inseguro",
-              description: "Notificações requerem HTTPS no navegador. Use um app ou HTTPS.",
-              variant: "destructive"
-            });
-            return 'denied';
-          }
+        // Log da plataforma
+        if (isNativeAndroidApp()) {
+          console.log('📱 Usando API nativa do Capacitor para Android');
+        } else if (isWebAndroidApp()) {
+          console.log('🌐 Usando Web Notification API para Android');
+        } else {
+          console.log('💻 Usando Web Notification API para desktop/web');
         }
         
-        // Se já foi negada anteriormente, orienta o usuário
-        if (Notification.permission === 'denied') {
-          toast({
-            title: "🔒 Notificações bloqueadas",
-            description: isApp ? 
-              "Vá em Configurações > Apps > TDAHFOCUS > Notificações > Permitir" :
-              "Vá nas configurações do navegador > Notificações > Permitir para este site",
-            variant: "destructive"
-          });
-          return 'denied';
-        }
-
-        // Se já está concedida, testa se realmente funciona
-        if (Notification.permission === 'granted') {
-          toast({
-            title: "✅ Notificações já ativas!",
-            description: "Testando se as notificações aparecem na barra do Android...",
-          });
+        const granted = await requestAndroidNotificationPermission();
+        
+        if (granted) {
+          newStatus = 'granted';
           
-          // Testa com uma notificação imediata para Android
-          setTimeout(() => {
-            try {
-              const testNotification = new Notification('🎯 TDAHFOCUS - Teste', {
-                body: 'Se você vê esta notificação na barra do Android, está funcionando! 📱✨',
-                icon: '/favicon.ico',
-                tag: 'android-test',
-                silent: false,
-                requireInteraction: true
-              });
-              
-              setTimeout(() => {
-                testNotification.close();
-              }, 5000);
-            } catch (error) {
-              console.error('❌ Erro ao criar notificação de teste:', error);
-            }
-          }, 1000);
-          
-          return 'granted';
-        }
-
-        // Solicita permissão (especialmente importante para Android)
-        if (Notification.permission === 'default') {
-          console.log('📱 Forçando solicitação de permissão para Android...');
-          
-          if (isApp) {
-            newStatus = await requestAndroidNotificationPermission();
-          } else {
-            try {
-              const permission = await Notification.requestPermission();
-              console.log('🌐 Resultado da solicitação no navegador:', permission);
-              
-              if (permission === 'granted') {
-                toast({
-                  title: "✅ Notificações ativadas!",
-                  description: "Agora você receberá lembretes para suas tarefas.",
-                });
-                newStatus = 'granted';
-              } else if (permission === 'denied') {
-                toast({
-                  title: "❌ Notificações negadas",
-                  description: "Você negou as notificações. Ative nas configurações do navegador.",
-                  variant: "destructive"
-                });
-                newStatus = 'denied';
-              } else {
-                newStatus = 'prompt';
-              }
-            } catch (error) {
-              console.error('❌ Erro ao solicitar permissão no navegador:', error);
-              newStatus = 'denied';
-            }
-          }
-          
-          // Se conseguiu a permissão, mostra feedback específico para Android
-          if (newStatus === 'granted' && isApp) {
+          if (isNativeAndroidApp()) {
             toast({
               title: "🎉 Sucesso no Android!",
-              description: "Notificações ativadas! Você verá os lembretes na barra de notificações do seu Android! 📱🔔",
+              description: "Notificações nativas ativadas! Você receberá lembretes na barra de notificações do Android! 📱🔔",
             });
-          } else if (newStatus === 'denied' && isApp) {
+          } else {
+            toast({
+              title: "✅ Notificações ativadas!",
+              description: "Agora você receberá lembretes motivacionais!",
+            });
+          }
+        } else {
+          newStatus = 'denied';
+          
+          if (isNativeAndroidApp()) {
             toast({
               title: "⚠️ Permissão necessária",
               description: "Para receber notificações, vá em: Configurações > Apps > TDAHFOCUS > Notificações > Permitir",
+              variant: "destructive"
+            });
+          } else if (isWebAndroidApp()) {
+            toast({
+              title: "🔒 Notificações bloqueadas",
+              description: "Vá nas configurações do Android > Apps > Chrome/Samsung Internet > Notificações > Permitir",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "❌ Notificações negadas",
+              description: "Ative nas configurações do navegador para receber lembretes.",
               variant: "destructive"
             });
           }
@@ -251,11 +133,11 @@ export const requestAllPermissions = async (
   permissions: Permission[],
   onPermissionUpdate: (permissionId: string, status: Permission['status']) => void
 ) => {
-  console.log('🔔 Solicitando todas as permissões para Android...');
+  console.log('🔔 Solicitando todas as permissões...');
   
   toast({
-    title: "📱 Configurando para Android",
-    description: "Vamos solicitar as permissões necessárias para o funcionamento do app no Android.",
+    title: "📱 Configurando aplicativo",
+    description: "Vamos solicitar as permissões necessárias para o funcionamento do app.",
   });
   
   for (const permission of permissions) {
@@ -263,25 +145,23 @@ export const requestAllPermissions = async (
       console.log(`🔄 Processando permissão: ${permission.id}`);
       const newStatus = await requestPermission(permission.id);
       onPermissionUpdate(permission.id, newStatus);
-      // Pausa entre solicitações para Android
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
   }
   
-  // Verifica se todas as permissões obrigatórias foram concedidas
   const allGranted = permissions
     .filter(p => p.isRequired)
     .every(p => p.status === 'granted');
     
   if (allGranted) {
     toast({
-      title: "🎉 App configurado para Android!",
-      description: "Todas as permissões foram concedidas! Seu app está pronto para uso no Android. 📱✨",
+      title: "🎉 App configurado!",
+      description: "Todas as permissões foram concedidas! Seu app está pronto para uso. 📱✨",
     });
   } else {
     toast({
       title: "⚠️ Algumas permissões pendentes",
-      description: "Para funcionar completamente no Android, conceda todas as permissões em Configurações > Apps > TDAHFOCUS.",
+      description: "Para funcionar completamente, conceda todas as permissões nas configurações do sistema.",
       variant: "destructive"
     });
   }
