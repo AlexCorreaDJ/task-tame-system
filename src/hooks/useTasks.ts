@@ -1,6 +1,5 @@
 
-import { validateInput, sanitizeText, sanitizeHTML, checkRateLimit, VALIDATION_PATTERNS } from '@/utils/security';
-import { useSecureLocalStorage } from './useSecureLocalStorage';
+import { useLocalStorage } from './useLocalStorage';
 
 export interface Task {
   id: string;
@@ -13,7 +12,7 @@ export interface Task {
 }
 
 export const useTasks = () => {
-  const [tasks, setTasks] = useSecureLocalStorage<Task[]>('focusflow-tasks', [
+  const [tasks, setTasks] = useLocalStorage<Task[]>('focusflow-tasks', [
     {
       id: '1',
       title: 'Estudar para prova de matemática',
@@ -39,89 +38,31 @@ export const useTasks = () => {
       completed: true,
       createdAt: new Date().toISOString()
     }
-  ], 7 * 24 * 60 * 60 * 1000); // 7 days TTL
+  ]);
 
-  const validateTaskData = (taskData: Omit<Task, 'id' | 'completed' | 'createdAt'>): { isValid: boolean; errors: string[] } => {
-    const errors: string[] = [];
-
-    if (!validateInput(taskData.title, VALIDATION_PATTERNS.title)) {
-      errors.push('Título deve ter entre 1 e 100 caracteres e conter apenas letras, números e pontuação básica');
-    }
-
-    if (taskData.description && !validateInput(taskData.description, VALIDATION_PATTERNS.description)) {
-      errors.push('Descrição deve ter no máximo 500 caracteres');
-    }
-
-    if (!['high', 'medium', 'low'].includes(taskData.priority)) {
-      errors.push('Prioridade deve ser alta, média ou baixa');
-    }
-
-    return { isValid: errors.length === 0, errors };
-  };
-
-  const addTask = (taskData: Omit<Task, 'id' | 'completed' | 'createdAt'>): Task | null => {
-    // Rate limiting
-    if (!checkRateLimit('addTask', 20, 60000)) {
-      console.warn('Muitas tarefas sendo criadas. Tente novamente em alguns segundos.');
-      return null;
-    }
-
-    const validation = validateTaskData(taskData);
-    if (!validation.isValid) {
-      console.warn('Dados da tarefa inválidos:', validation.errors);
-      return null;
-    }
-
+  const addTask = (taskData: Omit<Task, 'id' | 'completed' | 'createdAt'>) => {
     const newTask: Task = {
       ...taskData,
-      title: sanitizeText(taskData.title),
-      description: taskData.description ? sanitizeHTML(taskData.description) : undefined,
-      estimatedTime: sanitizeText(taskData.estimatedTime),
       id: Date.now().toString(),
       completed: false,
       createdAt: new Date().toISOString()
     };
-
     setTasks(prev => [...prev, newTask]);
     return newTask;
   };
 
-  const updateTask = (id: string, updates: Partial<Task>): boolean => {
-    // Rate limiting
-    if (!checkRateLimit('updateTask', 50, 60000)) {
-      console.warn('Muitas atualizações sendo feitas. Tente novamente em alguns segundos.');
-      return false;
-    }
-
-    const sanitizedUpdates = { ...updates };
-    if (sanitizedUpdates.title) {
-      sanitizedUpdates.title = sanitizeText(sanitizedUpdates.title);
-    }
-    if (sanitizedUpdates.description) {
-      sanitizedUpdates.description = sanitizeHTML(sanitizedUpdates.description);
-    }
-
+  const updateTask = (id: string, updates: Partial<Task>) => {
     setTasks(prev => prev.map(task => 
-      task.id === id ? { ...task, ...sanitizedUpdates } : task
+      task.id === id ? { ...task, ...updates } : task
     ));
-    return true;
   };
 
-  const deleteTask = (id: string): boolean => {
-    if (!checkRateLimit('deleteTask', 30, 60000)) {
-      console.warn('Muitas exclusões sendo feitas. Tente novamente em alguns segundos.');
-      return false;
-    }
-
+  const deleteTask = (id: string) => {
     setTasks(prev => prev.filter(task => task.id !== id));
-    return true;
   };
 
-  const toggleTask = (id: string): boolean => {
-    const task = tasks.find(t => t.id === id);
-    if (!task) return false;
-    
-    return updateTask(id, { completed: !task.completed });
+  const toggleTask = (id: string) => {
+    updateTask(id, { completed: !tasks.find(t => t.id === id)?.completed });
   };
 
   return {
