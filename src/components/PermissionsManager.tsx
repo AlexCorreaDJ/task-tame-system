@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, AlertCircle } from "lucide-react";
+import { CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 import { Permission } from "@/types/permissions";
 import { defaultPermissions } from "@/data/permissionsData";
 import { checkAllPermissions } from "@/utils/permissionChecker";
@@ -12,15 +12,75 @@ import { PermissionItem } from "./PermissionItem";
 export const PermissionsManager = () => {
   const [permissions, setPermissions] = useState<Permission[]>(defaultPermissions);
   const [allPermissionsChecked, setAllPermissionsChecked] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     initializePermissions();
+    
+    // Verifica permissões a cada 3 segundos para detectar mudanças manuais
+    const interval = setInterval(() => {
+      checkPermissionsQuietly();
+    }, 3000);
+    
+    // Verifica quando a página volta ao foco (usuario voltou do app de configurações)
+    const handleFocus = () => {
+      setTimeout(() => {
+        checkPermissionsQuietly();
+      }, 1000);
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        setTimeout(() => {
+          checkPermissionsQuietly();
+        }, 1000);
+      }
+    });
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const initializePermissions = async () => {
+    console.log('Inicializando verificação de permissões...');
     const updatedPermissions = await checkAllPermissions(permissions);
     setPermissions(updatedPermissions);
     setAllPermissionsChecked(true);
+  };
+
+  const checkPermissionsQuietly = async () => {
+    try {
+      const updatedPermissions = await checkAllPermissions(permissions);
+      setPermissions(updatedPermissions);
+    } catch (error) {
+      console.log('Erro na verificação silenciosa:', error);
+    }
+  };
+
+  const handleRefreshPermissions = async () => {
+    setIsRefreshing(true);
+    console.log('Atualizando status das permissões...');
+    
+    try {
+      const updatedPermissions = await checkAllPermissions(permissions);
+      setPermissions(updatedPermissions);
+      
+      // Verifica se alguma permissão foi concedida
+      const newlyGranted = updatedPermissions.filter((perm, index) => 
+        permissions[index].status !== 'granted' && perm.status === 'granted'
+      );
+      
+      if (newlyGranted.length > 0) {
+        console.log('Permissões detectadas como concedidas:', newlyGranted.map(p => p.name));
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar permissões:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const handlePermissionRequest = async (permissionId: string) => {
@@ -58,12 +118,27 @@ export const PermissionsManager = () => {
   return (
     <Card className="bg-white/70 backdrop-blur-sm border-blue-200">
       <CardHeader className="p-4 md:p-6">
-        <CardTitle className="text-base md:text-lg text-blue-700 flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 md:h-5 md:w-5" />
-          Permissões do Aplicativo
-        </CardTitle>
+        <div className="flex items-center justify-between mb-2">
+          <CardTitle className="text-base md:text-lg text-blue-700 flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 md:h-5 md:w-5" />
+            Permissões do Aplicativo
+          </CardTitle>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRefreshPermissions}
+            disabled={isRefreshing}
+            className="text-xs"
+          >
+            <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+        </div>
         <p className="text-xs md:text-sm text-gray-600">
           Para o melhor funcionamento do app, precisamos das seguintes permissões:
+        </p>
+        <p className="text-xs text-blue-600 mt-1">
+          💡 Se você concedeu permissões manualmente, clique em "Atualizar" para detectá-las
         </p>
       </CardHeader>
       <CardContent className="space-y-3 md:space-y-4 p-4 md:p-6 pt-0">

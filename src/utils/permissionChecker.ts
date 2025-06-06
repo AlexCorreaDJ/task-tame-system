@@ -15,37 +15,50 @@ export const checkPermission = async (permissionId: string): Promise<Permission[
   try {
     switch (permissionId) {
       case 'notifications':
-        console.log('Verificando suporte a notificações...');
+        console.log('🔍 Verificando permissão de notificações...');
         
         // Verifica se a API está disponível
         if (!('Notification' in window)) {
-          console.log('Notification API não disponível');
+          console.log('❌ Notification API não disponível');
           return 'denied';
         }
         
         const isApp = isAndroidApp();
-        console.log('É app Android:', isApp);
-        console.log('Status atual da permissão:', Notification.permission);
+        const currentPermission = Notification.permission;
         
-        // Para apps Android (APK), não precisamos verificar HTTPS
-        if (!isApp) {
-          // Somente para navegadores web, verifica HTTPS
+        console.log('📱 É app Android:', isApp);
+        console.log('🔔 Status atual da permissão:', currentPermission);
+        
+        // Para apps Android (APK), foca apenas no status da permissão
+        if (isApp) {
+          console.log('📱 Verificando permissão no Android APK...');
+          
+          if (currentPermission === 'granted') {
+            console.log('✅ Permissões de notificação CONCEDIDAS no Android!');
+            return 'granted';
+          } else if (currentPermission === 'denied') {
+            console.log('❌ Permissões de notificação NEGADAS no Android');
+            return 'denied';
+          } else {
+            console.log('⏳ Permissões de notificação PENDENTES no Android');
+            return 'prompt';
+          }
+        } else {
+          // Para navegadores web, verifica HTTPS também
           const isSecure = location.protocol === 'https:' || 
                           location.hostname === 'localhost' || 
                           location.hostname === '127.0.0.1';
           
           if (!isSecure) {
-            console.log('Contexto inseguro detectado no navegador');
+            console.log('❌ Contexto inseguro detectado no navegador');
             return 'denied';
           }
         }
         
-        const permission = Notification.permission;
-        console.log('Permissão de notificação atual:', permission);
-        
-        if (permission === 'default') return 'prompt';
-        if (permission === 'granted') return 'granted';
-        if (permission === 'denied') return 'denied';
+        // Retorna status baseado na permissão atual
+        if (currentPermission === 'default') return 'prompt';
+        if (currentPermission === 'granted') return 'granted';
+        if (currentPermission === 'denied') return 'denied';
         
         return 'unknown';
 
@@ -54,11 +67,14 @@ export const checkPermission = async (permissionId: string): Promise<Permission[
           try {
             localStorage.setItem('android-permission-test', 'test');
             localStorage.removeItem('android-permission-test');
+            console.log('✅ Armazenamento local disponível');
             return 'granted';
           } catch {
+            console.log('❌ Armazenamento local negado');
             return 'denied';
           }
         }
+        console.log('❌ localStorage não disponível');
         return 'denied';
 
       case 'wakeLock':
@@ -67,29 +83,31 @@ export const checkPermission = async (permissionId: string): Promise<Permission[
           try {
             const wakeLock = await (navigator as any).wakeLock.request('screen');
             await wakeLock.release();
+            console.log('✅ Wake Lock disponível');
             return 'granted';
           } catch (error) {
-            console.log('Wake Lock não disponível:', error);
+            console.log('❌ Wake Lock não disponível:', error);
             return 'denied';
           }
         }
+        console.log('❌ Wake Lock API não suportada');
         return 'denied';
 
       default:
         return 'unknown';
     }
   } catch (error) {
-    console.error(`Erro ao verificar permissão ${permissionId}:`, error);
+    console.error(`❌ Erro ao verificar permissão ${permissionId}:`, error);
     return 'denied';
   }
 };
 
 export const checkAllPermissions = async (permissions: Permission[]): Promise<Permission[]> => {
-  console.log('Verificando todas as permissões...');
+  console.log('🔍 Verificando todas as permissões...');
   return await Promise.all(
     permissions.map(async (permission) => {
       const status = await checkPermission(permission.id);
-      console.log(`Permissão ${permission.id}: ${status}`);
+      console.log(`📋 Permissão ${permission.id}: ${status}`);
       return { ...permission, status };
     })
   );
