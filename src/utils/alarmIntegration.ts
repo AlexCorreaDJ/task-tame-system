@@ -27,39 +27,26 @@ export const createSystemAlarm = async (title: string, time: string, description
 
     console.log(`⏰ Criando alarme do sistema para: ${alarmDate.toLocaleString()}`);
 
-    // Usar Intent do Android para criar alarme
-    const intent = {
-      action: 'android.intent.action.SET_ALARM',
-      extras: {
-        'android.intent.extra.alarm.HOUR': hours,
-        'android.intent.extra.alarm.MINUTES': minutes,
-        'android.intent.extra.alarm.MESSAGE': `🎯 ${title}`,
-        'android.intent.extra.alarm.SKIP_UI': false, // Mostra a UI do alarme
-        'android.intent.extra.alarm.VIBRATE': true,
-        'android.intent.extra.alarm.RINGTONE': 'content://settings/system/alarm_alert'
-      }
-    };
+    // URL do Intent para criar alarme
+    const intentUrl = `intent://alarm?` +
+      `action=android.intent.action.SET_ALARM&` +
+      `android.intent.extra.alarm.HOUR=${hours}&` +
+      `android.intent.extra.alarm.MINUTES=${minutes}&` +
+      `android.intent.extra.alarm.MESSAGE=${encodeURIComponent(`🎯 ${title}`)}&` +
+      `android.intent.extra.alarm.SKIP_UI=false&` +
+      `android.intent.extra.alarm.VIBRATE=true` +
+      `#Intent;scheme=alarm;package=com.google.android.deskclock;end`;
 
-    // Chama o plugin do Capacitor para abrir o Intent
-    if (Capacitor.isPluginAvailable('App')) {
-      const { App } = await import('@capacitor/app');
-      
-      // Abre o app de alarmes do Android usando o método correto
-      await App.openUrl({
-        url: `intent://alarm?${new URLSearchParams({
-          action: 'android.intent.action.SET_ALARM',
-          'android.intent.extra.alarm.HOUR': hours.toString(),
-          'android.intent.extra.alarm.MINUTES': minutes.toString(),
-          'android.intent.extra.alarm.MESSAGE': `🎯 ${title}`,
-          'android.intent.extra.alarm.SKIP_UI': 'false'
-        }).toString()}#Intent;scheme=alarm;package=com.google.android.deskclock;end`
-      });
-
-      console.log('✅ Alarme criado com sucesso no sistema!');
-      return true;
+    // Usa window.open para abrir o intent no ambiente nativo
+    if (Capacitor.isNativePlatform()) {
+      window.open(intentUrl, '_system');
+    } else {
+      console.log('⚠️ Funcionalidade disponível apenas no app nativo');
+      return false;
     }
 
-    return false;
+    console.log('✅ Alarme criado com sucesso no sistema!');
+    return true;
   } catch (error) {
     console.error('❌ Erro ao criar alarme do sistema:', error);
     return false;
