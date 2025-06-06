@@ -5,35 +5,26 @@ export const checkPermission = async (permissionId: string): Promise<Permission[
   try {
     switch (permissionId) {
       case 'notifications':
-        // Verifica se o navegador suporta notificações de forma mais ampla
-        if (!('Notification' in window) && !('webkitNotifications' in window)) {
+        // Verifica se a API está disponível
+        if (!('Notification' in window)) {
           console.log('Notification API não disponível');
-          // Retorna granted para permitir uso de lembretes alternativos
-          return 'granted';
+          return 'denied';
         }
         
-        // Verifica se estamos em um contexto seguro (HTTPS ou localhost)
-        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+        // Verifica contexto seguro
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
           console.log('Notificações requerem HTTPS');
-          // Ainda permite funcionamento com lembretes alternativos
-          return 'granted';
+          return 'denied';
         }
         
-        // Usa a API padrão ou webkit
-        const NotificationAPI = window.Notification || (window as any).webkitNotifications;
-        
-        if (!NotificationAPI) {
-          // Sem API disponível, mas permite funcionamento alternativo
-          return 'granted';
-        }
-        
-        const permission = NotificationAPI.permission;
+        const permission = Notification.permission;
         console.log('Status atual da permissão de notificação:', permission);
         
         if (permission === 'default') return 'prompt';
         if (permission === 'granted') return 'granted';
-        // Mesmo se negada, permite funcionamento alternativo
-        return 'granted';
+        if (permission === 'denied') return 'denied';
+        
+        return 'unknown';
 
       case 'storage':
         if ('localStorage' in window) {

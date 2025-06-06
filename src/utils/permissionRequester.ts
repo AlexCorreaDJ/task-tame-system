@@ -10,90 +10,115 @@ export const requestPermission = async (permissionId: string): Promise<Permissio
 
     switch (permissionId) {
       case 'notifications':
-        // Verifica se o navegador suporta notificações de forma mais ampla
-        if (!('Notification' in window) && !('webkitNotifications' in window)) {
-          console.log('Notification API não disponível neste navegador');
+        // Verifica se estamos em um contexto seguro primeiro
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+          console.log('Notificações requerem HTTPS - redirecionando para HTTPS se possível');
           toast({
-            title: "Lembretes alternativos ativados",
-            description: "Usaremos lembretes visuais no próprio app ao invés de notificações do sistema.",
+            title: "Contexto inseguro detectado",
+            description: "Para notificações do sistema, acesse via HTTPS.",
+            variant: "destructive"
           });
-          // Considera como concedida para continuar funcionando
+          return 'denied';
+        }
+
+        // Força a verificação da API de notificação
+        if (!('Notification' in window)) {
+          console.log('API de Notification não disponível');
+          toast({
+            title: "Notificações não suportadas",
+            description: "Este navegador não suporta notificações do sistema.",
+            variant: "destructive"
+          });
+          return 'denied';
+        }
+
+        console.log('API de Notification disponível, status atual:', Notification.permission);
+        
+        // Se já foi negada, orienta o usuário
+        if (Notification.permission === 'denied') {
+          toast({
+            title: "Notificações bloqueadas",
+            description: "Vá nas configurações do navegador e permita notificações para este site, depois recarregue a página.",
+            variant: "destructive"
+          });
+          return 'denied';
+        }
+
+        // Se já está concedida, confirma
+        if (Notification.permission === 'granted') {
+          toast({
+            title: "Notificações ativadas!",
+            description: "Você receberá notificações do sistema.",
+          });
+          
+          // Testa com uma notificação imediata
+          setTimeout(() => {
+            try {
+              new Notification('TDAHFOCUS - Teste', {
+                body: 'As notificações estão funcionando!',
+                icon: '/favicon.ico',
+                tag: 'test-notification'
+              });
+            } catch (error) {
+              console.error('Erro ao criar notificação de teste:', error);
+            }
+          }, 1000);
+          
           return 'granted';
         }
 
-        // Tenta usar a API padrão primeiro
-        let NotificationAPI = window.Notification;
-        
-        // Fallback para webkit se necessário
-        if (!NotificationAPI && (window as any).webkitNotifications) {
-          NotificationAPI = (window as any).webkitNotifications;
-        }
-
-        if (!NotificationAPI) {
-          console.log('Nenhuma API de notificação disponível');
-          toast({
-            title: "Lembretes no app ativados",
-            description: "Seus lembretes aparecerão diretamente no aplicativo.",
-          });
-          return 'granted';
-        }
-
-        console.log('Estado atual da notificação:', NotificationAPI.permission);
-        
-        if (NotificationAPI.permission === 'default') {
+        // Solicita permissão se está como 'default'
+        if (Notification.permission === 'default') {
           console.log('Solicitando permissão de notificação...');
+          
           try {
-            const permission = await NotificationAPI.requestPermission();
+            const permission = await Notification.requestPermission();
             console.log('Resultado da solicitação:', permission);
-            newStatus = permission as Permission['status'];
             
             if (permission === 'granted') {
               toast({
                 title: "Notificações ativadas!",
-                description: "Agora você receberá lembretes do sistema.",
+                description: "Agora você receberá notificações do sistema para seus lembretes.",
               });
               
-              // Testa enviando uma notificação local
+              // Testa com uma notificação
               setTimeout(() => {
                 try {
-                  new NotificationAPI('TDAHFOCUS', {
-                    body: 'Notificações ativadas com sucesso!',
-                    icon: '/favicon.ico'
+                  new Notification('TDAHFOCUS', {
+                    body: 'Notificações ativadas com sucesso! Você receberá lembretes aqui.',
+                    icon: '/favicon.ico',
+                    tag: 'welcome-notification'
                   });
                 } catch (error) {
-                  console.error('Erro ao criar notificação de teste:', error);
+                  console.error('Erro ao criar notificação de boas-vindas:', error);
                 }
               }, 1000);
+              
+              newStatus = 'granted';
             } else if (permission === 'denied') {
               toast({
-                title: "Lembretes no app ativados",
-                description: "Seus lembretes aparecerão dentro do aplicativo. Para notificações do sistema, ative nas configurações do navegador.",
+                title: "Notificações negadas",
+                description: "Você negou as notificações. Para ativar, vá nas configurações do navegador.",
+                variant: "destructive"
               });
-              // Considera como concedida para funcionalidade alternativa
-              newStatus = 'granted';
+              newStatus = 'denied';
+            } else {
+              // Caso 'default' persista
+              toast({
+                title: "Permissão pendente",
+                description: "A permissão de notificação ainda está pendente. Tente novamente.",
+                variant: "destructive"
+              });
+              newStatus = 'prompt';
             }
           } catch (error) {
             console.error('Erro ao solicitar permissão:', error);
             toast({
-              title: "Lembretes ativados",
-              description: "Usaremos lembretes visuais no app. Para notificações do sistema, ative manualmente nas configurações.",
+              title: "Erro ao solicitar permissão",
+              description: "Não foi possível solicitar permissão de notificação. Tente recarregar a página.",
+              variant: "destructive"
             });
-            return 'granted';
-          }
-        } else {
-          newStatus = NotificationAPI.permission as Permission['status'];
-          if (newStatus === 'granted') {
-            toast({
-              title: "Notificações já ativadas!",
-              description: "As notificações do sistema já estão funcionando.",
-            });
-          } else if (newStatus === 'denied') {
-            toast({
-              title: "Lembretes no app ativados",
-              description: "Seus lembretes aparecerão dentro do aplicativo.",
-            });
-            // Considera como concedida para funcionalidade alternativa
-            newStatus = 'granted';
+            newStatus = 'denied';
           }
         }
         break;
@@ -121,7 +146,6 @@ export const requestPermission = async (permissionId: string): Promise<Permissio
       case 'wakeLock':
         if ('wakeLock' in navigator) {
           try {
-            // Testa se consegue solicitar o wake lock
             const wakeLock = await (navigator as any).wakeLock.request('screen');
             await wakeLock.release();
             newStatus = 'granted';
