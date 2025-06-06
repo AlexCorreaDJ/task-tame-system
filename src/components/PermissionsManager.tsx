@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,6 +66,7 @@ export const PermissionsManager = () => {
         case 'notifications':
           if ('Notification' in window) {
             const permission = Notification.permission;
+            if (permission === 'default') return 'prompt';
             return permission as Permission['status'];
           }
           return 'denied';
@@ -99,21 +99,57 @@ export const PermissionsManager = () => {
   };
 
   const requestPermission = async (permissionId: string) => {
+    console.log(`Solicitando permissão: ${permissionId}`);
+    
     try {
       let newStatus: Permission['status'] = 'denied';
 
       switch (permissionId) {
         case 'notifications':
           if ('Notification' in window) {
-            const permission = await Notification.requestPermission();
-            newStatus = permission as Permission['status'];
+            console.log('Estado atual da notificação:', Notification.permission);
             
-            if (permission === 'granted') {
-              toast({
-                title: "Permissão concedida!",
-                description: "Agora você receberá notificações de lembretes.",
-              });
+            if (Notification.permission === 'default') {
+              console.log('Solicitando permissão de notificação...');
+              const permission = await Notification.requestPermission();
+              console.log('Resultado da solicitação:', permission);
+              newStatus = permission as Permission['status'];
+              
+              if (permission === 'granted') {
+                toast({
+                  title: "Permissão concedida!",
+                  description: "Agora você receberá notificações de lembretes.",
+                });
+                
+                // Testa enviando uma notificação
+                setTimeout(() => {
+                  new Notification('TDAHFOCUS', {
+                    body: 'Notificações ativadas com sucesso!',
+                    icon: '/favicon.ico'
+                  });
+                }, 1000);
+              } else if (permission === 'denied') {
+                toast({
+                  title: "Permissão negada",
+                  description: "Você pode ativar notificações nas configurações do navegador.",
+                  variant: "destructive"
+                });
+              }
+            } else {
+              newStatus = Notification.permission as Permission['status'];
+              if (newStatus === 'granted') {
+                toast({
+                  title: "Notificações já ativadas!",
+                  description: "As notificações já estão funcionando.",
+                });
+              }
             }
+          } else {
+            toast({
+              title: "Não suportado",
+              description: "Notificações não são suportadas neste dispositivo.",
+              variant: "destructive"
+            });
           }
           break;
 
@@ -126,7 +162,8 @@ export const PermissionsManager = () => {
               title: "Armazenamento disponível!",
               description: "Seus dados serão salvos localmente.",
             });
-          } catch {
+          } catch (error) {
+            console.error('Erro no localStorage:', error);
             newStatus = 'denied';
             toast({
               title: "Erro no armazenamento",
@@ -139,15 +176,30 @@ export const PermissionsManager = () => {
         case 'wakeLock':
           if ('wakeLock' in navigator) {
             try {
-              // Testa se a API está disponível
+              // Testa se consegue solicitar o wake lock
+              const wakeLock = await (navigator as any).wakeLock.request('screen');
+              await wakeLock.release();
               newStatus = 'granted';
               toast({
                 title: "Controle de tela disponível!",
                 description: "O app pode manter a tela ativa durante sessões de foco.",
               });
-            } catch {
+            } catch (error) {
+              console.error('Erro no wake lock:', error);
               newStatus = 'denied';
+              toast({
+                title: "Não foi possível ativar",
+                description: "O controle de tela não está disponível neste momento.",
+                variant: "destructive"
+              });
             }
+          } else {
+            newStatus = 'denied';
+            toast({
+              title: "Não suportado",
+              description: "Controle de tela não é suportado neste dispositivo.",
+              variant: "destructive"
+            });
           }
           break;
       }
@@ -168,11 +220,14 @@ export const PermissionsManager = () => {
   };
 
   const requestAllPermissions = async () => {
+    console.log('Solicitando todas as permissões...');
+    
     for (const permission of permissions) {
       if (permission.status !== 'granted' && permission.isRequired) {
+        console.log(`Processando permissão: ${permission.id}`);
         await requestPermission(permission.id);
         // Pequena pausa entre solicitações
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
   };
@@ -287,7 +342,7 @@ export const PermissionsManager = () => {
           <div className="pt-3 md:pt-4 border-t">
             <Button 
               onClick={requestAllPermissions}
-              className="w-full bg-green-600 hover:bg-green-700 text-sm md:text-base h-12 md:h-11 px-4"
+              className="w-full bg-green-600 hover:bg-green-700 text-xs sm:text-sm h-10 sm:h-11 px-4"
             >
               Conceder Todas as Permissões
             </Button>
