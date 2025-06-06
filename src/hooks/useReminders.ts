@@ -34,7 +34,6 @@ export const useReminders = () => {
         icon: '/favicon.ico',
         badge: '/favicon.ico',
         tag: `tdahfocus-${reminder.id}`, // Tag única para evitar duplicatas
-        image: '/favicon.ico', // Imagem grande (como o Duolingo)
         
         // Configurações estilo Duolingo
         silent: false, // COM som
@@ -46,21 +45,7 @@ export const useReminders = () => {
           reminderType: reminder.type,
           reminderId: reminder.id,
           timestamp: Date.now()
-        },
-        
-        // Actions (botões na notificação) - como o Duolingo
-        actions: [
-          {
-            action: 'start-focus',
-            title: '🎯 Começar Agora',
-            icon: '/favicon.ico'
-          },
-          {
-            action: 'remind-later',
-            title: '⏰ Lembrar em 5min',
-            icon: '/favicon.ico'
-          }
-        ]
+        }
       });
 
       // Eventos da notificação (como o Duolingo)
