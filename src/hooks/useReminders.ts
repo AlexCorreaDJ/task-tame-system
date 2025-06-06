@@ -1,3 +1,4 @@
+
 import { useLocalStorage } from './useLocalStorage';
 import { toast } from '@/hooks/use-toast';
 
@@ -28,7 +29,7 @@ export const useReminders = () => {
 
   // Função para mostrar notificação otimizada para Android
   const showNotification = (reminder: Reminder) => {
-    console.log('🔔 Mostrando notificação para Android:', reminder.title);
+    console.log('🔔 Mostrando notificação motivacional para Android:', reminder.title);
     
     if ('Notification' in window && Notification.permission === 'granted') {
       console.log('✅ Criando notificação nativa para Android...');
@@ -132,7 +133,7 @@ export const useReminders = () => {
 
   // Inicia o sistema de verificação de lembretes
   const startReminderSystem = () => {
-    console.log('🚀 Iniciando sistema de lembretes otimizado para Android...');
+    console.log('🚀 Iniciando sistema de lembretes motivacionais para Android...');
     
     // Verifica imediatamente
     checkReminders();

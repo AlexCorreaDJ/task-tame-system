@@ -23,7 +23,7 @@ export const ReminderManager = () => {
   const [notificationPermission, setNotificationPermission] = useState(false);
 
   useEffect(() => {
-    console.log('🚀 ReminderManager: Iniciando sistema estilo Duolingo...');
+    console.log('🚀 ReminderManager: Iniciando sistema de lembretes motivacionais...');
     
     // Inicia o sistema de lembretes
     const cleanup = startReminderSystem();
@@ -39,14 +39,14 @@ export const ReminderManager = () => {
   }, []);
 
   const handleRequestPermission = async () => {
-    console.log('🔔 Solicitando permissão estilo Duolingo...');
+    console.log('🔔 Solicitando permissão de notificações motivacionais...');
     const granted = await requestNotificationPermission();
     setNotificationPermission(granted);
     
     if (granted) {
       toast({
         title: "🎉 Notificações ativadas!",
-        description: "Agora você receberá lembretes motivacionais como o Duolingo! 🚀",
+        description: "Agora você receberá lembretes motivacionais para manter seu foco! 🚀",
       });
     } else {
       toast({
@@ -64,7 +64,7 @@ export const ReminderManager = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header estilo Duolingo */}
+      {/* Header motivacional */}
       <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200 shadow-lg">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -74,7 +74,7 @@ export const ReminderManager = () => {
               </div>
               <div>
                 <h2 className="font-bold">Lembretes Motivacionais</h2>
-                <p className="text-sm text-green-600 font-normal">Mantenha seu foco como no Duolingo! 🎯</p>
+                <p className="text-sm text-green-600 font-normal">Mantenha seu foco e produtividade! 🎯</p>
               </div>
             </CardTitle>
             <Button 
@@ -86,7 +86,7 @@ export const ReminderManager = () => {
             </Button>
           </div>
           
-          {/* Status da permissão estilo Duolingo */}
+          {/* Status da permissão */}
           <div className="mt-4">
             <NotificationPermissionBanner 
               hasPermission={notificationPermission}
@@ -105,7 +105,7 @@ export const ReminderManager = () => {
         )}
       </Card>
 
-      {/* Lista de lembretes estilo Duolingo */}
+      {/* Lista de lembretes */}
       <Card className="bg-white/70 backdrop-blur-sm border-gray-200 shadow-lg">
         <CardHeader>
           <CardTitle className="text-lg text-gray-700 flex items-center gap-3">

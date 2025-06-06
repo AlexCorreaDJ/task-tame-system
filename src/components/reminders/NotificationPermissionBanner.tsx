@@ -39,7 +39,7 @@ export const NotificationPermissionBanner = ({
           <div>
             <p className="text-yellow-800 font-semibold">⚠️ Ative as Notificações!</p>
             <p className="text-sm text-yellow-700">
-              Receba lembretes motivacionais com som e vibração como no Duolingo! 🚀
+              Receba lembretes motivacionais com som e vibração para manter seu foco! 🚀
             </p>
           </div>
         </div>

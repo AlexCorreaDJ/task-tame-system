@@ -31,7 +31,7 @@ export const ReminderForm = ({ onAddReminder, onCancel }: ReminderFormProps) => 
       return;
     }
     
-    console.log('➕ Criando lembrete estilo Duolingo:', newReminder);
+    console.log('➕ Criando lembrete motivacional:', newReminder);
     
     onAddReminder({
       title: newReminder.title,
