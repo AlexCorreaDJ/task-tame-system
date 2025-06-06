@@ -1,5 +1,4 @@
 
-
 apply plugin: 'com.android.application'
 
 android {
@@ -39,8 +38,8 @@ dependencies {
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
     
-    // Firebase dependencies for push notifications and balloon-style notifications (Java 8 compatible versions)
-    implementation platform('com.google.firebase:firebase-bom:31.5.0')
+    // Firebase dependencies for push notifications and balloon-style notifications
+    implementation platform('com.google.firebase:firebase-bom:32.7.0')
     implementation 'com.google.firebase:firebase-messaging'
     implementation 'com.google.firebase:firebase-analytics'
     
@@ -67,4 +66,3 @@ try {
     logger.error("❌ Error applying Google Services plugin: ${e.message}")
     logger.warn("📱 Push notifications won't work without proper Firebase configuration")
 }
-
