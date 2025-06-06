@@ -103,6 +103,9 @@
   input, textarea, select {
     /* Previne zoom automático no iOS quando input é focado */
     font-size: 16px;
+    /* Aumenta o tamanho mínimo para mobile */
+    min-height: 48px;
+    padding: 12px 16px;
   }
 
   /* Safe area para dispositivos com notch */
@@ -116,8 +119,36 @@
 
   /* Melhora a área de toque em dispositivos móveis */
   button, [role="button"] {
-    min-height: 44px;
-    min-width: 44px;
+    min-height: 48px;
+    min-width: 48px;
+    /* Melhora o toque em mobile */
+    touch-action: manipulation;
+  }
+
+  /* Ajustes específicos para mobile */
+  @media (max-width: 768px) {
+    /* Aumenta o tamanho dos elementos para melhor proporção */
+    .mobile-card {
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    
+    /* Melhora o espaçamento dos botões */
+    button {
+      padding: 16px 24px;
+      font-size: 16px;
+    }
+    
+    /* Texto maior em mobile */
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.25rem; }
+    h3 { font-size: 1.125rem; }
+    
+    /* Cards com melhor proporção */
+    .card {
+      padding: 20px;
+      border-radius: 12px;
+    }
   }
 
   /* Scroll suave em todos os containers */
@@ -139,5 +170,24 @@
   
   .touch-action-manipulation {
     touch-action: manipulation;
+  }
+  
+  /* Classes específicas para mobile */
+  .mobile-optimized {
+    @apply text-base leading-relaxed;
+  }
+  
+  @media (max-width: 768px) {
+    .mobile-spacing {
+      @apply p-6 m-4;
+    }
+    
+    .mobile-text {
+      @apply text-lg;
+    }
+    
+    .mobile-button {
+      @apply h-14 px-6 text-base;
+    }
   }
 }
