@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Bell, BellPlus, Clock, Trash2 } from "lucide-react";
 import { useReminders, Reminder } from "@/hooks/useReminders";
+import { toast } from "@/hooks/use-toast";
 
 export const ReminderManager = () => {
   const { 
@@ -31,24 +31,51 @@ export const ReminderManager = () => {
   });
 
   useEffect(() => {
+    console.log('ReminderManager: Iniciando...');
+    
     // Inicia o sistema de lembretes
     const cleanup = startReminderSystem();
     
     // Verifica permissão de notificação
     if ('Notification' in window) {
-      setNotificationPermission(Notification.permission === 'granted');
+      const hasPermission = Notification.permission === 'granted';
+      setNotificationPermission(hasPermission);
+      console.log('Permissão de notificação:', Notification.permission);
     }
 
     return cleanup;
   }, []);
 
   const handleRequestPermission = async () => {
+    console.log('Solicitando permissão...');
     const granted = await requestNotificationPermission();
     setNotificationPermission(granted);
+    
+    if (granted) {
+      toast({
+        title: "Notificações ativadas!",
+        description: "Agora você receberá lembretes com som no horário definido.",
+      });
+    } else {
+      toast({
+        title: "Permissão negada",
+        description: "Vá nas configurações do navegador para permitir notificações.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleAddReminder = () => {
-    if (!newReminder.title || !newReminder.time) return;
+    if (!newReminder.title || !newReminder.time) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha o título e horário do lembrete.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    console.log('Criando lembrete:', newReminder);
     
     addReminder({
       title: newReminder.title,
@@ -60,6 +87,11 @@ export const ReminderManager = () => {
 
     setNewReminder({ title: '', description: '', time: '', type: 'custom' });
     setShowAddForm(false);
+    
+    toast({
+      title: "Lembrete criado!",
+      description: `Lembrete definido para ${newReminder.time}`,
+    });
   };
 
   const typeColors = {
@@ -86,7 +118,7 @@ export const ReminderManager = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg text-blue-700 flex items-center gap-2">
               <Bell className="h-5 w-5" />
-              Lembretes e Notificações
+              Lembretes com Notificação
             </CardTitle>
             <Button 
               onClick={() => setShowAddForm(!showAddForm)}
@@ -97,22 +129,31 @@ export const ReminderManager = () => {
             </Button>
           </div>
           
-          {/* Permissão de notificação */}
-          {!notificationPermission && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
-              <p className="text-sm text-yellow-700 mb-2">
-                Permita notificações para receber lembretes no horário certo!
-              </p>
-              <Button 
-                onClick={handleRequestPermission}
-                size="sm"
-                className="bg-yellow-600 hover:bg-yellow-700"
-              >
-                <BellPlus className="h-4 w-4 mr-2" />
-                Permitir Notificações
-              </Button>
-            </div>
-          )}
+          {/* Status da permissão de notificação */}
+          <div className="mt-4">
+            {notificationPermission ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-sm text-green-700 font-medium flex items-center gap-2">
+                  <Bell className="h-4 w-4" />
+                  Notificações ativadas! Você receberá lembretes com som no celular.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-700 mb-2">
+                  ⚠️ <strong>Ative as notificações para receber lembretes com som no celular!</strong>
+                </p>
+                <Button 
+                  onClick={handleRequestPermission}
+                  size="sm"
+                  className="bg-yellow-600 hover:bg-yellow-700"
+                >
+                  <BellPlus className="h-4 w-4 mr-2" />
+                  Ativar Notificações com Som
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
         
         {showAddForm && (
@@ -130,26 +171,33 @@ export const ReminderManager = () => {
                 rows={2}
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  type="time"
-                  value={newReminder.time}
-                  onChange={(e) => setNewReminder({...newReminder, time: e.target.value})}
-                />
-                <Select 
-                  value={newReminder.type} 
-                  onValueChange={(value: Reminder['type']) => setNewReminder({...newReminder, type: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Tipo do lembrete" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="custom">Personalizado</SelectItem>
-                    <SelectItem value="task">Tarefa</SelectItem>
-                    <SelectItem value="reading">Leitura</SelectItem>
-                    <SelectItem value="project">Projeto</SelectItem>
-                    <SelectItem value="break">Pausa</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-700">Horário</label>
+                  <Input
+                    type="time"
+                    value={newReminder.time}
+                    onChange={(e) => setNewReminder({...newReminder, time: e.target.value})}
+                    className="w-full"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-700">Tipo</label>
+                  <Select 
+                    value={newReminder.type} 
+                    onValueChange={(value: Reminder['type']) => setNewReminder({...newReminder, type: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tipo do lembrete" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="custom">Personalizado</SelectItem>
+                      <SelectItem value="task">Tarefa</SelectItem>
+                      <SelectItem value="reading">Leitura</SelectItem>
+                      <SelectItem value="project">Projeto</SelectItem>
+                      <SelectItem value="break">Pausa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button onClick={handleAddReminder} className="bg-green-600 hover:bg-green-700">
@@ -178,7 +226,7 @@ export const ReminderManager = () => {
               <Bell className="h-12 w-12 mx-auto text-gray-400 mb-4" />
               <p className="text-gray-500">Nenhum lembrete configurado!</p>
               <p className="text-sm text-gray-400 mt-2">
-                Crie lembretes para não esquecer das suas atividades importantes
+                Crie lembretes para receber notificações com som no celular
               </p>
             </div>
           ) : (
@@ -207,6 +255,12 @@ export const ReminderManager = () => {
                         {typeLabels[reminder.type]}
                       </Badge>
                       <h3 className="font-medium text-gray-800">{reminder.title}</h3>
+                      {reminder.isActive && notificationPermission && (
+                        <Badge variant="outline" className="bg-green-100 text-green-700">
+                          <Bell className="h-3 w-3 mr-1" />
+                          Com Som
+                        </Badge>
+                      )}
                     </div>
                     
                     {reminder.description && (
