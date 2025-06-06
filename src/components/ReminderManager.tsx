@@ -25,8 +25,14 @@ export const ReminderManager = () => {
   useEffect(() => {
     console.log('🚀 ReminderManager: Iniciando sistema de lembretes motivacionais...');
     
-    // Inicia o sistema de lembretes
-    const cleanup = startReminderSystem();
+    let cleanup: (() => void) | undefined;
+    
+    // Inicia o sistema de lembretes de forma assíncrona
+    const initSystem = async () => {
+      cleanup = await startReminderSystem();
+    };
+    
+    initSystem();
     
     // Verifica permissão de notificação
     if ('Notification' in window) {
@@ -35,7 +41,11 @@ export const ReminderManager = () => {
       console.log('🔔 Permissão de notificação:', Notification.permission);
     }
 
-    return cleanup;
+    return () => {
+      if (cleanup) {
+        cleanup();
+      }
+    };
   }, []);
 
   const handleRequestPermission = async () => {
