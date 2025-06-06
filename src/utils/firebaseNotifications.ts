@@ -1,4 +1,3 @@
-
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
@@ -10,6 +9,9 @@ let firebaseInitialized = false;
 
 // Store the device token
 let fcmToken: string | null = null;
+
+// Store scheduled reminders
+let scheduledReminders: Map<string, NodeJS.Timeout> = new Map();
 
 /**
  * Check if the app is running on a native Android platform
@@ -270,4 +272,102 @@ export const checkFirebaseStatus = (): { initialized: boolean; hasToken: boolean
     hasToken: !!token,
     token: token?.substring(0, 50) + '...' || undefined
   };
+};
+
+/**
+ * Schedule a Firebase reminder that will show as balloon notification
+ */
+export const scheduleFirebaseReminder = async (reminder: any): Promise<boolean> => {
+  if (!isNativeAndroid()) {
+    console.log('⚠️ Firebase reminders só funcionam no app nativo Android');
+    return false;
+  }
+
+  if (!firebaseInitialized) {
+    console.log('⚠️ Firebase não inicializado, tentando inicializar...');
+    const initialized = await initializeFirebaseMessaging();
+    if (!initialized) {
+      return false;
+    }
+  }
+
+  try {
+    console.log(`🔥 Agendando lembrete Firebase: "${reminder.title}" para ${reminder.time}`);
+    
+    // Calcula quando o lembrete deve ser executado
+    const [hours, minutes] = reminder.time.split(':').map(Number);
+    const now = new Date();
+    const scheduledTime = new Date();
+    scheduledTime.setHours(hours, minutes, 0, 0);
+    
+    // Se o horário já passou hoje, agenda para amanhã
+    if (scheduledTime <= now) {
+      scheduledTime.setDate(scheduledTime.getDate() + 1);
+    }
+    
+    const timeUntilReminder = scheduledTime.getTime() - now.getTime();
+    
+    console.log(`⏰ Lembrete será executado em ${Math.round(timeUntilReminder / 1000 / 60)} minutos`);
+    
+    // Cancela timer anterior se existir
+    if (scheduledReminders.has(reminder.id)) {
+      clearTimeout(scheduledReminders.get(reminder.id)!);
+    }
+    
+    // Agenda o lembrete
+    const timerId = setTimeout(async () => {
+      console.log(`🔔 Executando lembrete Firebase: "${reminder.title}"`);
+      
+      // Reproduz som
+      playNotificationSound();
+      
+      // Mostra notificação em estilo balão
+      const success = await showBalloonStyleNotification(
+        `🎯 ${reminder.title}`,
+        reminder.description || 'É hora do seu foco! Mantenha a concentração! 🚀',
+        {
+          reminderType: reminder.type,
+          reminderId: reminder.id,
+          timestamp: Date.now(),
+          source: 'firebase-scheduled'
+        }
+      );
+      
+      if (success) {
+        console.log('✅ Notificação balão Firebase enviada com sucesso!');
+      }
+      
+      // Remove da lista de agendados
+      scheduledReminders.delete(reminder.id);
+      
+      // Reagenda para o próximo dia
+      setTimeout(() => {
+        scheduleFirebaseReminder(reminder);
+      }, 1000);
+      
+    }, timeUntilReminder);
+    
+    // Armazena o timer
+    scheduledReminders.set(reminder.id, timerId);
+    
+    console.log(`✅ Lembrete Firebase "${reminder.title}" agendado com sucesso!`);
+    return true;
+    
+  } catch (error) {
+    console.error('❌ Erro ao agendar lembrete Firebase:', error);
+    return false;
+  }
+};
+
+/**
+ * Cancel a scheduled Firebase reminder
+ */
+export const cancelFirebaseReminder = (reminderId: string): boolean => {
+  if (scheduledReminders.has(reminderId)) {
+    clearTimeout(scheduledReminders.get(reminderId)!);
+    scheduledReminders.delete(reminderId);
+    console.log(`🗑️ Lembrete Firebase ${reminderId} cancelado`);
+    return true;
+  }
+  return false;
 };

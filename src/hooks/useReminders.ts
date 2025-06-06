@@ -18,7 +18,8 @@ import {
   initializeFirebaseMessaging,
   showBalloonStyleNotification,
   isNativeAndroid,
-  sendTestBalloonNotification
+  sendTestBalloonNotification,
+  scheduleFirebaseReminder
 } from '@/utils/firebaseNotifications';
 
 export interface Reminder {
@@ -31,6 +32,7 @@ export interface Reminder {
   isActive: boolean;
   createdAt: string;
   useBalloonStyle?: boolean; // Nova propriedade para controlar estilo da notificação
+  firebaseScheduled?: boolean; // Nova propriedade para indicar se foi agendado no Firebase
 }
 
 export const useReminders = () => {
@@ -251,17 +253,51 @@ export const useReminders = () => {
     const newReminder: Reminder = {
       ...reminderData,
       id: Date.now().toString(),
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      firebaseScheduled: false
     };
     
     console.log('➕ Adicionando novo lembrete:', newReminder);
-    setReminders(prev => [...prev, newReminder]);
     
-    // Para apps nativos, agenda a notificação imediatamente
-    if (isNativeAndroidApp() && newReminder.isActive) {
-      await scheduleBackgroundReminder(newReminder);
+    // Se estiver no Android nativo e o lembrete está ativo, tenta agendar no Firebase
+    if (isNativeAndroid() && newReminder.isActive) {
+      console.log('🔥 Tentando agendar lembrete no Firebase...');
+      
+      const firebaseSuccess = await scheduleFirebaseReminder(newReminder);
+      
+      if (firebaseSuccess) {
+        newReminder.firebaseScheduled = true;
+        newReminder.useBalloonStyle = true; // Ativa automaticamente o estilo balão
+        
+        console.log('✅ Lembrete agendado no Firebase com sucesso!');
+        toast({
+          title: "🎉 Lembrete Firebase criado!",
+          description: `"${newReminder.title}" aparecerá como notificação balão no horário ${newReminder.time}! 💬`,
+        });
+      } else {
+        console.log('⚠️ Firebase falhou, usando sistema local...');
+        
+        // Fallback para notificações locais
+        await scheduleBackgroundReminder(newReminder);
+        
+        toast({
+          title: "✅ Lembrete criado!",
+          description: `"${newReminder.title}" configurado para ${newReminder.time} (sistema local)`,
+        });
+      }
+    } else {
+      // Para apps nativos sem Firebase ou web apps
+      if (isNativeAndroidApp() && newReminder.isActive) {
+        await scheduleBackgroundReminder(newReminder);
+      }
+      
+      toast({
+        title: "✅ Lembrete criado!",
+        description: `"${newReminder.title}" configurado para ${newReminder.time}`,
+      });
     }
     
+    setReminders(prev => [...prev, newReminder]);
     return newReminder;
   };
 
