@@ -23,7 +23,6 @@ export const ReminderManager = () => {
   } = useReminders();
   
   const [showAddForm, setShowAddForm] = useState(false);
-  const [notificationPermission, setNotificationPermission] = useState(false);
   const [isNativeApp] = useState(isNativeAndroid());
 
   // Função para inicializar o áudio quando o usuário interagir
@@ -43,13 +42,6 @@ export const ReminderManager = () => {
     };
     
     initSystem();
-    
-    // Verifica permissão de notificação
-    if ('Notification' in window) {
-      const hasPermission = Notification.permission === 'granted';
-      setNotificationPermission(hasPermission);
-      console.log('🔔 Permissão de notificação:', Notification.permission);
-    }
 
     // Adiciona listener para inicializar áudio quando o usuário interagir
     document.addEventListener('click', handleUserInteraction);
@@ -128,35 +120,6 @@ export const ReminderManager = () => {
               </div>
             </div>
           )}
-          
-          {/* Banner de permissão se necessário */}
-          {!notificationPermission && !isNativeApp && (
-            <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
-              <div className="flex items-start">
-                <Bell className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
-                <div>
-                  <p className="text-yellow-800 font-medium mb-2">
-                    Permita notificações para receber lembretes!
-                  </p>
-                  <p className="text-yellow-700 mb-3">
-                    Ative as notificações para receber lembretes, mesmo com o app em segundo plano!
-                  </p>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      requestNotificationPermission().then(granted => {
-                        setNotificationPermission(granted);
-                      });
-                    }}
-                    className="bg-yellow-600 hover:bg-yellow-700"
-                  >
-                    <Bell className="h-4 w-4 mr-2" />
-                    Permitir Notificações
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
         </CardHeader>
         
         {showAddForm && (
@@ -189,7 +152,7 @@ export const ReminderManager = () => {
         <CardContent>
           <ReminderList 
             reminders={reminders}
-            notificationPermission={notificationPermission}
+            notificationPermission={true}
             onToggleReminder={toggleReminder}
             onToggleBalloonStyle={isNativeApp ? toggleBalloonStyle : undefined}
             onDeleteReminder={deleteReminder}
