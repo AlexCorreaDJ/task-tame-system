@@ -1,0 +1,8 @@
+
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TDAHFOCUS</string>
+    <string name="title_activity_main">TDAHFOCUS</string>
+    <string name="package_name">app.lovable.ebfff8e926ab4767aa4f9feb77a2e287</string>
+    <string name="custom_url_scheme">tdahfocus</string>
+</resources>

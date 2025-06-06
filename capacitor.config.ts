@@ -5,10 +5,6 @@ const config: CapacitorConfig = {
   appId: 'app.lovable.ebfff8e926ab4767aa4f9feb77a2e287',
   appName: 'TDAHFOCUS',
   webDir: 'dist',
-  server: {
-    url: 'https://ebfff8e9-26ab-4767-aa4f-9feb77a2e287.lovableproject.com?forceHideBadge=true',
-    cleartext: true
-  },
   bundledWebRuntime: false,
   plugins: {
     SplashScreen: {
@@ -56,9 +52,16 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: true,
     captureInput: true,
-    webContentsDebuggingEnabled: true,
+    webContentsDebuggingEnabled: false, // Desabilitado para produção
     backgroundColor: "#ffffff",
     useLegacyBridge: false,
+    buildOptions: {
+      keystorePath: undefined,
+      keystoreAlias: undefined,
+      keystorePassword: undefined,
+      keystoreAliasPassword: undefined,
+      releaseType: "APK"
+    },
     intentFilters: [
       {
         action: "android.intent.action.VIEW",

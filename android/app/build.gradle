@@ -9,7 +9,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -17,11 +17,32 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+    
+    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
         }
+    }
+    
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+            debuggable true
+        }
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug // Para builds de teste
+        }
+    }
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 }
 
@@ -60,11 +81,23 @@ try {
         logger.info("✅ google-services.json found! Firebase configured successfully!")
         logger.info("🔥 Push notifications and FCM are now available!")
     } else {
-        logger.error("❌ google-services.json NOT found in android/app/ directory!")
-        logger.error("📱 Please add google-services.json to enable Firebase features")
-        logger.error("🔗 Download it from Firebase Console > Project Settings > General > Your apps")
+        logger.info("⚠️ google-services.json NOT found - Firebase features disabled")
+        logger.info("📱 Local notifications will still work perfectly!")
     }
 } catch(Exception e) {
-    logger.error("❌ Error applying Google Services plugin: ${e.message}")
-    logger.error("📱 Push notifications won't work without proper Firebase configuration")
+    logger.info("ℹ️ Firebase not configured - using local notifications only")
+}
+
+// Task para build de APK de produção
+android.applicationVariants.all { variant ->
+    if (variant.name == 'release') {
+        variant.assemble.doLast {
+            copy {
+                from variant.outputs.collect { it.outputFile }
+                into "${rootDir}/build/outputs/"
+                rename { "TDAHFOCUS-v${variant.versionName}.apk" }
+            }
+            println "✅ APK gerado em: ${rootDir}/build/outputs/TDAHFOCUS-v${variant.versionName}.apk"
+        }
+    }
 }
