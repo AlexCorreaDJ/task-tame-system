@@ -15,43 +15,57 @@ export interface Reminder {
 export const useReminders = () => {
   const [reminders, setReminders] = useLocalStorage<Reminder[]>('focusflow-reminders', []);
 
-  // Função para mostrar notificação estilo Duolingo
+  // Detecta se é Android
+  const isAndroidApp = () => {
+    const userAgent = navigator.userAgent;
+    const isAndroid = /Android/i.test(userAgent);
+    const isCapacitor = !!(window as any).Capacitor;
+    const isWebView = /wv|WebView/i.test(userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    
+    return isAndroid && (isCapacitor || isWebView || isStandalone);
+  };
+
+  // Função para mostrar notificação otimizada para Android
   const showNotification = (reminder: Reminder) => {
-    console.log('🔔 Mostrando notificação estilo Duolingo para:', reminder.title);
+    console.log('🔔 Mostrando notificação para Android:', reminder.title);
     
     if ('Notification' in window && Notification.permission === 'granted') {
-      console.log('✅ Criando notificação nativa estilo Duolingo...');
+      console.log('✅ Criando notificação nativa para Android...');
       
-      // Vibração para chamar atenção (como o Duolingo)
+      const isApp = isAndroidApp();
+      
+      // Vibração para chamar atenção (especialmente importante no Android)
       if ('vibrate' in navigator) {
-        navigator.vibrate([100, 50, 100, 50, 200]); // Padrão de vibração
-        console.log('📳 Vibração ativada');
+        navigator.vibrate([200, 100, 200, 100, 300]); // Padrão mais forte para Android
+        console.log('📳 Vibração ativada no Android');
       }
 
-      // Cria a notificação com configurações estilo Duolingo
+      // Cria a notificação otimizada para Android
       const notification = new Notification(reminder.title, {
         body: reminder.description || 'É hora do seu foco! 🎯',
         icon: '/favicon.ico',
         badge: '/favicon.ico',
         tag: `tdahfocus-${reminder.id}`, // Tag única para evitar duplicatas
         
-        // Configurações estilo Duolingo
-        silent: false, // COM som
-        requireInteraction: true, // Usuário precisa interagir
+        // Configurações otimizadas para Android
+        silent: false, // COM som (importante para Android)
+        requireInteraction: true, // Usuário precisa interagir (Android)
         
         // Dados extras para a notificação
         data: {
           reminderType: reminder.type,
           reminderId: reminder.id,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          isAndroid: isApp
         }
       });
 
-      // Eventos da notificação (como o Duolingo)
+      // Eventos da notificação otimizados para Android
       notification.onshow = () => {
-        console.log('🎉 Notificação mostrada com sucesso!');
+        console.log('🎉 Notificação mostrada com sucesso no Android!');
         
-        // Som personalizado adicional (se suportado)
+        // Som personalizado adicional para Android (se suportado)
         if ('AudioContext' in window) {
           try {
             const audioContext = new AudioContext();
@@ -62,19 +76,19 @@ export const useReminders = () => {
             gainNode.connect(audioContext.destination);
             
             oscillator.frequency.value = 800; // Frequência agradável
-            gainNode.gain.value = 0.1; // Volume baixo
+            gainNode.gain.value = 0.15; // Volume um pouco mais alto para Android
             
             oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.2); // 200ms
+            oscillator.stop(audioContext.currentTime + 0.3); // 300ms
           } catch (error) {
-            console.log('Som personalizado não disponível');
+            console.log('Som personalizado não disponível no Android');
           }
         }
       };
 
       notification.onclick = () => {
-        console.log('👆 Usuário clicou na notificação');
-        // Foca na janela/app quando clicar
+        console.log('👆 Usuário clicou na notificação no Android');
+        // Foca na janela/app quando clicar (importante para Android)
         if (window.focus) {
           window.focus();
         }
@@ -82,17 +96,17 @@ export const useReminders = () => {
       };
 
       notification.onerror = (error) => {
-        console.error('❌ Erro na notificação:', error);
+        console.error('❌ Erro na notificação Android:', error);
       };
 
-      // Auto-fechar após 30 segundos (como o Duolingo)
+      // Auto-fechar após 45 segundos para Android (mais tempo que no navegador)
       setTimeout(() => {
         notification.close();
-        console.log('⏰ Notificação fechada automaticamente após 30s');
-      }, 30000);
+        console.log('⏰ Notificação fechada automaticamente após 45s');
+      }, 45000);
       
     } else {
-      console.log('❌ Notificações não permitidas, mostrando toast...');
+      console.log('❌ Notificações não permitidas no Android, mostrando toast...');
       // Fallback para toast se notificações não estiverem disponíveis
       toast({
         title: `🔔 ${reminder.title}`,
@@ -118,7 +132,7 @@ export const useReminders = () => {
 
   // Inicia o sistema de verificação de lembretes
   const startReminderSystem = () => {
-    console.log('🚀 Iniciando sistema de lembretes estilo Duolingo...');
+    console.log('🚀 Iniciando sistema de lembretes otimizado para Android...');
     
     // Verifica imediatamente
     checkReminders();
@@ -132,84 +146,88 @@ export const useReminders = () => {
     };
   };
 
-  // Função para solicitar permissão de notificação (estilo Duolingo)
+  // Função para solicitar permissão otimizada para Android
   const requestNotificationPermission = async () => {
-    console.log('🔔 Solicitando permissão de notificação estilo Duolingo...');
+    console.log('🔔 Solicitando permissão de notificação otimizada para Android...');
     
     if (!('Notification' in window)) {
       console.log('❌ Notification API não disponível');
       return false;
     }
 
+    const isApp = isAndroidApp();
+    console.log('📱 É app Android:', isApp);
+
     if (Notification.permission === 'granted') {
       console.log('✅ Permissão já concedida');
       
-      // Testa com uma notificação estilo Duolingo
+      // Testa com uma notificação otimizada para Android
       setTimeout(() => {
-        const testNotification = new Notification('🎉 TDAHFOCUS', {
-          body: 'Notificações ativadas! Agora você receberá lembretes motivacionais como este. 🚀',
+        const testNotification = new Notification('🎉 TDAHFOCUS - Android', {
+          body: 'Notificações ativadas no Android! Agora você receberá lembretes na barra de notificações. 📱🔔',
           icon: '/favicon.ico',
           badge: '/favicon.ico',
-          tag: 'tdahfocus-welcome',
+          tag: 'tdahfocus-android-welcome',
           silent: false,
           requireInteraction: true,
-          data: { type: 'welcome' }
+          data: { type: 'android-welcome' }
         });
         
-        // Vibração de boas-vindas
+        // Vibração especial para Android
         if ('vibrate' in navigator) {
-          navigator.vibrate([200, 100, 200]);
+          navigator.vibrate([100, 50, 100, 50, 200, 100, 300]);
         }
         
         setTimeout(() => {
           testNotification.close();
-        }, 5000);
+        }, 6000);
       }, 500);
       
       return true;
     }
 
     if (Notification.permission === 'denied') {
-      console.log('❌ Permissão negada pelo usuário');
+      console.log('❌ Permissão negada pelo usuário no Android');
       return false;
     }
 
     try {
       const permission = await Notification.requestPermission();
-      console.log('📋 Resultado da permissão:', permission);
+      console.log('📋 Resultado da permissão no Android:', permission);
       
       if (permission === 'granted') {
-        // Notificação de boas-vindas estilo Duolingo
+        // Notificação de boas-vindas específica para Android
         setTimeout(() => {
-          const welcomeNotification = new Notification('🎉 Bem-vindo ao TDAHFOCUS!', {
-            body: 'Agora você receberá lembretes motivacionais para manter seu foco! 🎯✨',
+          const welcomeNotification = new Notification('🎉 Bem-vindo ao TDAHFOCUS no Android!', {
+            body: 'Agora você receberá lembretes motivacionais na barra de notificações do Android! 📱🎯✨',
             icon: '/favicon.ico',
             badge: '/favicon.ico',
-            tag: 'tdahfocus-welcome',
+            tag: 'tdahfocus-android-setup',
             silent: false,
             requireInteraction: true,
-            data: { type: 'welcome' }
+            data: { type: 'android-setup' }
           });
           
-          // Vibração de comemoração
+          // Vibração de comemoração para Android
           if ('vibrate' in navigator) {
-            navigator.vibrate([100, 50, 100, 50, 200, 100, 300]);
+            navigator.vibrate([100, 50, 100, 50, 200, 100, 300, 100, 400]);
           }
           
           setTimeout(() => {
             welcomeNotification.close();
-          }, 6000);
+          }, 8000);
         }, 1000);
         
         return true;
       }
     } catch (error) {
-      console.error('❌ Erro ao solicitar permissão:', error);
+      console.error('❌ Erro ao solicitar permissão no Android:', error);
     }
     
     return false;
   };
 
+  // Função para adicionar um novo lembrete
   const addReminder = (reminderData: Omit<Reminder, 'id' | 'createdAt'>) => {
     const newReminder: Reminder = {
       ...reminderData,
@@ -222,16 +240,19 @@ export const useReminders = () => {
     return newReminder;
   };
 
+  // Função para atualizar um lembrete existente
   const updateReminder = (id: string, updates: Partial<Reminder>) => {
     setReminders(prev => prev.map(reminder => 
       reminder.id === id ? { ...reminder, ...updates } : reminder
     ));
   };
 
+  // Função para deletar um lembrete
   const deleteReminder = (id: string) => {
     setReminders(prev => prev.filter(reminder => reminder.id !== id));
   };
 
+  // Função para alternar o status de um lembrete
   const toggleReminder = (id: string) => {
     const reminder = reminders.find(r => r.id === id);
     if (reminder) {

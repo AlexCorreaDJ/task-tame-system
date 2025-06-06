@@ -7,15 +7,24 @@ const isAndroidApp = () => {
   const isAndroid = /Android/i.test(userAgent);
   const isCapacitor = !!(window as any).Capacitor;
   const isWebView = /wv|WebView/i.test(userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
   
-  return isAndroid && (isCapacitor || isWebView);
+  console.log('🔍 Detecção de plataforma:', {
+    userAgent,
+    isAndroid,
+    isCapacitor,
+    isWebView,
+    isStandalone
+  });
+  
+  return isAndroid && (isCapacitor || isWebView || isStandalone);
 };
 
 export const checkPermission = async (permissionId: string): Promise<Permission['status']> => {
   try {
     switch (permissionId) {
       case 'notifications':
-        console.log('🔍 Verificando permissão de notificações...');
+        console.log('🔍 Verificando permissão de notificações para Android...');
         
         // Verifica se a API está disponível
         if (!('Notification' in window)) {
@@ -29,13 +38,31 @@ export const checkPermission = async (permissionId: string): Promise<Permission[
         console.log('📱 É app Android:', isApp);
         console.log('🔔 Status atual da permissão:', currentPermission);
         
-        // Para apps Android (APK), foca apenas no status da permissão
+        // Para apps Android, forçamos a verificação real
         if (isApp) {
           console.log('📱 Verificando permissão no Android APK...');
           
+          // Tenta criar uma notificação de teste para verificar se realmente funciona
           if (currentPermission === 'granted') {
-            console.log('✅ Permissões de notificação CONCEDIDAS no Android!');
-            return 'granted';
+            try {
+              console.log('✅ Testando notificação no Android...');
+              const testNotification = new Notification('Teste TDAHFOCUS', {
+                body: 'Testando se as notificações funcionam no Android',
+                icon: '/favicon.ico',
+                tag: 'android-permission-test',
+                silent: true // Teste silencioso
+              });
+              
+              setTimeout(() => {
+                testNotification.close();
+              }, 1000);
+              
+              console.log('✅ Permissões de notificação FUNCIONANDO no Android!');
+              return 'granted';
+            } catch (error) {
+              console.log('❌ Erro ao testar notificação:', error);
+              return 'denied';
+            }
           } else if (currentPermission === 'denied') {
             console.log('❌ Permissões de notificação NEGADAS no Android');
             return 'denied';
@@ -103,7 +130,7 @@ export const checkPermission = async (permissionId: string): Promise<Permission[
 };
 
 export const checkAllPermissions = async (permissions: Permission[]): Promise<Permission[]> => {
-  console.log('🔍 Verificando todas as permissões...');
+  console.log('🔍 Verificando todas as permissões no Android...');
   return await Promise.all(
     permissions.map(async (permission) => {
       const status = await checkPermission(permission.id);
