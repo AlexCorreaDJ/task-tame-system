@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Clock, Target } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Clock, Target, AlarmClock } from "lucide-react";
 import { Reminder } from "@/hooks/useReminders";
 import { toast } from "@/hooks/use-toast";
+import { createSystemAlarm, isAlarmSupported } from "@/utils/alarmIntegration";
 
 interface ReminderFormProps {
   onAddReminder: (reminderData: Omit<Reminder, 'id' | 'createdAt'>) => void;
@@ -20,8 +22,9 @@ export const ReminderForm = ({ onAddReminder, onCancel }: ReminderFormProps) => 
     time: '',
     type: 'custom' as Reminder['type']
   });
+  const [createAlarm, setCreateAlarm] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!newReminder.title || !newReminder.time) {
       toast({
         title: "⚠️ Campos obrigatórios",
@@ -33,6 +36,7 @@ export const ReminderForm = ({ onAddReminder, onCancel }: ReminderFormProps) => 
     
     console.log('➕ Criando lembrete motivacional:', newReminder);
     
+    // Cria o lembrete no app
     onAddReminder({
       title: newReminder.title,
       description: newReminder.description,
@@ -41,12 +45,35 @@ export const ReminderForm = ({ onAddReminder, onCancel }: ReminderFormProps) => 
       isActive: true
     });
 
+    // Se solicitado, cria também um alarme no sistema
+    if (createAlarm) {
+      console.log('⏰ Criando alarme do sistema também...');
+      const alarmCreated = await createSystemAlarm(
+        newReminder.title, 
+        newReminder.time, 
+        newReminder.description
+      );
+      
+      if (alarmCreated) {
+        toast({
+          title: "🎯 Lembrete + Alarme criados!",
+          description: `Notificação às ${newReminder.time} + alarme no relógio! ⏰🔔`,
+        });
+      } else {
+        toast({
+          title: "🎯 Lembrete criado!",
+          description: `Você receberá uma notificação motivacional às ${newReminder.time}! ⏰`,
+        });
+      }
+    } else {
+      toast({
+        title: "🎯 Lembrete criado!",
+        description: `Você receberá uma notificação motivacional às ${newReminder.time}! ⏰`,
+      });
+    }
+
     setNewReminder({ title: '', description: '', time: '', type: 'custom' });
-    
-    toast({
-      title: "🎯 Lembrete criado!",
-      description: `Você receberá uma notificação motivacional às ${newReminder.time}! ⏰`,
-    });
+    setCreateAlarm(false);
   };
 
   return (
@@ -99,6 +126,26 @@ export const ReminderForm = ({ onAddReminder, onCancel }: ReminderFormProps) => 
           </Select>
         </div>
       </div>
+      
+      {/* Opção para criar alarme no sistema */}
+      {isAlarmSupported() && (
+        <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <Checkbox
+            id="create-alarm"
+            checked={createAlarm}
+            onCheckedChange={setCreateAlarm}
+            className="data-[state=checked]:bg-blue-600"
+          />
+          <label 
+            htmlFor="create-alarm" 
+            className="text-sm font-medium text-blue-700 flex items-center gap-2 cursor-pointer"
+          >
+            <AlarmClock className="h-4 w-4" />
+            Criar também um alarme no relógio do Android
+          </label>
+        </div>
+      )}
+      
       <div className="flex gap-3">
         <Button 
           onClick={handleSubmit} 
