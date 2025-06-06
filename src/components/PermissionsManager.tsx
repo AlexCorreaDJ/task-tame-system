@@ -1,274 +1,41 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Bell, HardDrive, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-
-interface Permission {
-  id: string;
-  name: string;
-  description: string;
-  icon: any;
-  status: 'granted' | 'denied' | 'prompt' | 'unknown';
-  isRequired: boolean;
-}
+import { CheckCircle, AlertCircle } from "lucide-react";
+import { Permission } from "@/types/permissions";
+import { defaultPermissions } from "@/data/permissionsData";
+import { checkAllPermissions } from "@/utils/permissionChecker";
+import { requestPermission, requestAllPermissions } from "@/utils/permissionRequester";
+import { PermissionItem } from "./PermissionItem";
 
 export const PermissionsManager = () => {
-  const [permissions, setPermissions] = useState<Permission[]>([
-    {
-      id: 'notifications',
-      name: 'Notificações',
-      description: 'Receber lembretes e alertas de tarefas',
-      icon: Bell,
-      status: 'unknown',
-      isRequired: true
-    },
-    {
-      id: 'storage',
-      name: 'Armazenamento Local',
-      description: 'Salvar dados localmente no dispositivo',
-      icon: HardDrive,
-      status: 'unknown',
-      isRequired: true
-    },
-    {
-      id: 'wakeLock',
-      name: 'Manter Tela Ativa',
-      description: 'Manter a tela ativa durante sessões de foco',
-      icon: Clock,
-      status: 'unknown',
-      isRequired: false
-    }
-  ]);
-
+  const [permissions, setPermissions] = useState<Permission[]>(defaultPermissions);
   const [allPermissionsChecked, setAllPermissionsChecked] = useState(false);
 
   useEffect(() => {
-    checkAllPermissions();
+    initializePermissions();
   }, []);
 
-  const checkAllPermissions = async () => {
-    const updatedPermissions = await Promise.all(
-      permissions.map(async (permission) => {
-        const status = await checkPermission(permission.id);
-        return { ...permission, status };
-      })
-    );
-    
+  const initializePermissions = async () => {
+    const updatedPermissions = await checkAllPermissions(permissions);
     setPermissions(updatedPermissions);
     setAllPermissionsChecked(true);
   };
 
-  const checkPermission = async (permissionId: string): Promise<Permission['status']> => {
-    try {
-      switch (permissionId) {
-        case 'notifications':
-          if ('Notification' in window) {
-            const permission = Notification.permission;
-            if (permission === 'default') return 'prompt';
-            return permission as Permission['status'];
-          }
-          return 'denied';
-
-        case 'storage':
-          if ('localStorage' in window) {
-            try {
-              localStorage.setItem('permission-test', 'test');
-              localStorage.removeItem('permission-test');
-              return 'granted';
-            } catch {
-              return 'denied';
-            }
-          }
-          return 'denied';
-
-        case 'wakeLock':
-          if ('wakeLock' in navigator) {
-            return 'granted';
-          }
-          return 'denied';
-
-        default:
-          return 'unknown';
-      }
-    } catch (error) {
-      console.error(`Erro ao verificar permissão ${permissionId}:`, error);
-      return 'denied';
-    }
+  const handlePermissionRequest = async (permissionId: string) => {
+    const newStatus = await requestPermission(permissionId);
+    updatePermissionStatus(permissionId, newStatus);
   };
 
-  const requestPermission = async (permissionId: string) => {
-    console.log(`Solicitando permissão: ${permissionId}`);
-    
-    try {
-      let newStatus: Permission['status'] = 'denied';
-
-      switch (permissionId) {
-        case 'notifications':
-          if ('Notification' in window) {
-            console.log('Estado atual da notificação:', Notification.permission);
-            
-            if (Notification.permission === 'default') {
-              console.log('Solicitando permissão de notificação...');
-              const permission = await Notification.requestPermission();
-              console.log('Resultado da solicitação:', permission);
-              newStatus = permission as Permission['status'];
-              
-              if (permission === 'granted') {
-                toast({
-                  title: "Permissão concedida!",
-                  description: "Agora você receberá notificações de lembretes.",
-                });
-                
-                // Testa enviando uma notificação
-                setTimeout(() => {
-                  new Notification('TDAHFOCUS', {
-                    body: 'Notificações ativadas com sucesso!',
-                    icon: '/favicon.ico'
-                  });
-                }, 1000);
-              } else if (permission === 'denied') {
-                toast({
-                  title: "Permissão negada",
-                  description: "Você pode ativar notificações nas configurações do navegador.",
-                  variant: "destructive"
-                });
-              }
-            } else {
-              newStatus = Notification.permission as Permission['status'];
-              if (newStatus === 'granted') {
-                toast({
-                  title: "Notificações já ativadas!",
-                  description: "As notificações já estão funcionando.",
-                });
-              }
-            }
-          } else {
-            toast({
-              title: "Não suportado",
-              description: "Notificações não são suportadas neste dispositivo.",
-              variant: "destructive"
-            });
-          }
-          break;
-
-        case 'storage':
-          try {
-            localStorage.setItem('permission-test', 'test');
-            localStorage.removeItem('permission-test');
-            newStatus = 'granted';
-            toast({
-              title: "Armazenamento disponível!",
-              description: "Seus dados serão salvos localmente.",
-            });
-          } catch (error) {
-            console.error('Erro no localStorage:', error);
-            newStatus = 'denied';
-            toast({
-              title: "Erro no armazenamento",
-              description: "Não foi possível acessar o armazenamento local.",
-              variant: "destructive"
-            });
-          }
-          break;
-
-        case 'wakeLock':
-          if ('wakeLock' in navigator) {
-            try {
-              // Testa se consegue solicitar o wake lock
-              const wakeLock = await (navigator as any).wakeLock.request('screen');
-              await wakeLock.release();
-              newStatus = 'granted';
-              toast({
-                title: "Controle de tela disponível!",
-                description: "O app pode manter a tela ativa durante sessões de foco.",
-              });
-            } catch (error) {
-              console.error('Erro no wake lock:', error);
-              newStatus = 'denied';
-              toast({
-                title: "Não foi possível ativar",
-                description: "O controle de tela não está disponível neste momento.",
-                variant: "destructive"
-              });
-            }
-          } else {
-            newStatus = 'denied';
-            toast({
-              title: "Não suportado",
-              description: "Controle de tela não é suportado neste dispositivo.",
-              variant: "destructive"
-            });
-          }
-          break;
-      }
-
-      // Atualiza o status da permissão
-      setPermissions(prev => prev.map(p => 
-        p.id === permissionId ? { ...p, status: newStatus } : p
-      ));
-
-    } catch (error) {
-      console.error(`Erro ao solicitar permissão ${permissionId}:`, error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível solicitar a permissão.",
-        variant: "destructive"
-      });
-    }
+  const updatePermissionStatus = (permissionId: string, status: Permission['status']) => {
+    setPermissions(prev => prev.map(p => 
+      p.id === permissionId ? { ...p, status } : p
+    ));
   };
 
-  const requestAllPermissions = async () => {
-    console.log('Solicitando todas as permissões...');
-    
-    for (const permission of permissions) {
-      if (permission.status !== 'granted' && permission.isRequired) {
-        console.log(`Processando permissão: ${permission.id}`);
-        await requestPermission(permission.id);
-        // Pequena pausa entre solicitações
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    }
-  };
-
-  const getStatusIcon = (status: Permission['status']) => {
-    switch (status) {
-      case 'granted':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'denied':
-        return <XCircle className="h-4 w-4 text-red-600" />;
-      case 'prompt':
-        return <AlertCircle className="h-4 w-4 text-yellow-600" />;
-      default:
-        return <AlertCircle className="h-4 w-4 text-gray-400" />;
-    }
-  };
-
-  const getStatusColor = (status: Permission['status']) => {
-    switch (status) {
-      case 'granted':
-        return 'bg-green-100 text-green-700 border-green-200';
-      case 'denied':
-        return 'bg-red-100 text-red-700 border-red-200';
-      case 'prompt':
-        return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
-  };
-
-  const getStatusText = (status: Permission['status']) => {
-    switch (status) {
-      case 'granted':
-        return 'Concedida';
-      case 'denied':
-        return 'Negada';
-      case 'prompt':
-        return 'Pendente';
-      default:
-        return 'Desconhecida';
-    }
+  const handleRequestAllPermissions = async () => {
+    await requestAllPermissions(permissions, updatePermissionStatus);
   };
 
   const requiredPermissionsGranted = permissions
@@ -300,49 +67,19 @@ export const PermissionsManager = () => {
         </p>
       </CardHeader>
       <CardContent className="space-y-3 md:space-y-4 p-4 md:p-6 pt-0">
-        {permissions.map((permission) => {
-          const IconComponent = permission.icon;
-          return (
-            <div key={permission.id} className="flex items-start gap-3 p-3 md:p-4 border rounded-lg bg-white">
-              <IconComponent className="h-5 w-5 md:h-6 md:w-6 text-blue-600 mt-0.5" />
-              
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
-                  <h3 className="font-medium text-gray-800 text-sm md:text-base">{permission.name}</h3>
-                  {permission.isRequired && (
-                    <Badge variant="outline" className="bg-orange-100 text-orange-700 text-xs w-fit">
-                      Obrigatória
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-xs md:text-sm text-gray-600 leading-relaxed">{permission.description}</p>
-              </div>
-              
-              <div className="flex flex-col gap-2 items-end">
-                <Badge variant="outline" className={`${getStatusColor(permission.status)} text-xs`}>
-                  {getStatusIcon(permission.status)}
-                  <span className="ml-1">{getStatusText(permission.status)}</span>
-                </Badge>
-                
-                {permission.status !== 'granted' && (
-                  <Button
-                    size="sm"
-                    onClick={() => requestPermission(permission.id)}
-                    className="bg-blue-600 hover:bg-blue-700 text-xs h-8 px-3"
-                  >
-                    Permitir
-                  </Button>
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {permissions.map((permission) => (
+          <PermissionItem
+            key={permission.id}
+            permission={permission}
+            onRequest={handlePermissionRequest}
+          />
+        ))}
         
         {!requiredPermissionsGranted && (
           <div className="pt-3 md:pt-4 border-t">
             <Button 
-              onClick={requestAllPermissions}
-              className="w-full bg-green-600 hover:bg-green-700 text-xs sm:text-sm h-10 sm:h-11 px-4"
+              onClick={handleRequestAllPermissions}
+              className="w-full bg-green-600 hover:bg-green-700 text-sm h-10 px-4"
             >
               Conceder Todas as Permissões
             </Button>
