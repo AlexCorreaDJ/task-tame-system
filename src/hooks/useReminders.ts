@@ -38,7 +38,6 @@ export const useReminders = () => {
         // Configurações estilo Duolingo
         silent: false, // COM som
         requireInteraction: true, // Usuário precisa interagir
-        renotify: true, // Permite renotificação
         
         // Dados extras para a notificação
         data: {
