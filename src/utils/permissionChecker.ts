@@ -11,14 +11,15 @@ export const checkPermission = async (permissionId: string): Promise<Permission[
           return 'denied';
         }
         
-        // Verifica contexto seguro
-        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-          console.log('Notificações requerem HTTPS');
+        // No Android, verifica se estamos em contexto seguro (HTTPS ou localhost)
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        if (isAndroid && location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+          console.log('Android: Notificações requerem HTTPS');
           return 'denied';
         }
         
         const permission = Notification.permission;
-        console.log('Status atual da permissão de notificação:', permission);
+        console.log('Status atual da permissão de notificação no Android:', permission);
         
         if (permission === 'default') return 'prompt';
         if (permission === 'granted') return 'granted';
@@ -29,8 +30,8 @@ export const checkPermission = async (permissionId: string): Promise<Permission[
       case 'storage':
         if ('localStorage' in window) {
           try {
-            localStorage.setItem('permission-test', 'test');
-            localStorage.removeItem('permission-test');
+            localStorage.setItem('android-permission-test', 'test');
+            localStorage.removeItem('android-permission-test');
             return 'granted';
           } catch {
             return 'denied';
@@ -39,8 +40,17 @@ export const checkPermission = async (permissionId: string): Promise<Permission[
         return 'denied';
 
       case 'wakeLock':
+        // No Android, verifica se Wake Lock API está disponível
         if ('wakeLock' in navigator) {
-          return 'granted';
+          try {
+            // Testa se consegue solicitar wake lock
+            const wakeLock = await (navigator as any).wakeLock.request('screen');
+            await wakeLock.release();
+            return 'granted';
+          } catch (error) {
+            console.log('Wake Lock não disponível no Android:', error);
+            return 'denied';
+          }
         }
         return 'denied';
 
@@ -48,15 +58,17 @@ export const checkPermission = async (permissionId: string): Promise<Permission[
         return 'unknown';
     }
   } catch (error) {
-    console.error(`Erro ao verificar permissão ${permissionId}:`, error);
+    console.error(`Erro ao verificar permissão ${permissionId} no Android:`, error);
     return 'denied';
   }
 };
 
 export const checkAllPermissions = async (permissions: Permission[]): Promise<Permission[]> => {
+  console.log('Verificando todas as permissões no Android...');
   return await Promise.all(
     permissions.map(async (permission) => {
       const status = await checkPermission(permission.id);
+      console.log(`Permissão ${permission.id}: ${status}`);
       return { ...permission, status };
     })
   );
