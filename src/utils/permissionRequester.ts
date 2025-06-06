@@ -1,4 +1,3 @@
-
 import { Permission } from "@/types/permissions";
 import { toast } from "@/hooks/use-toast";
 
@@ -14,19 +13,8 @@ export const requestPermission = async (permissionId: string): Promise<Permissio
         if (!('Notification' in window)) {
           console.log('Notification API não disponível neste navegador');
           toast({
-            title: "Notificações não suportadas",
-            description: "Este navegador não suporta notificações push.",
-            variant: "destructive"
-          });
-          return 'denied';
-        }
-
-        // Verifica se estamos em contexto seguro
-        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-          console.log('Notificações requerem HTTPS');
-          toast({
-            title: "Contexto inseguro",
-            description: "Notificações requerem conexão HTTPS.",
+            title: "Notificações não disponíveis",
+            description: "Este navegador não suporta notificações locais.",
             variant: "destructive"
           });
           return 'denied';
@@ -47,11 +35,11 @@ export const requestPermission = async (permissionId: string): Promise<Permissio
                 description: "Agora você receberá notificações de lembretes.",
               });
               
-              // Testa enviando uma notificação
+              // Testa enviando uma notificação local
               setTimeout(() => {
                 try {
                   new Notification('TDAHFOCUS', {
-                    body: 'Notificações ativadas com sucesso!',
+                    body: 'Notificações locais ativadas com sucesso!',
                     icon: '/favicon.ico'
                   });
                 } catch (error) {
@@ -69,7 +57,7 @@ export const requestPermission = async (permissionId: string): Promise<Permissio
             console.error('Erro ao solicitar permissão:', error);
             toast({
               title: "Erro ao solicitar permissão",
-              description: "Não foi possível solicitar permissão de notificação.",
+              description: "Não foi possível solicitar permissão de notificação. Tente nas configurações do dispositivo.",
               variant: "destructive"
             });
             return 'denied';
@@ -79,12 +67,12 @@ export const requestPermission = async (permissionId: string): Promise<Permissio
           if (newStatus === 'granted') {
             toast({
               title: "Notificações já ativadas!",
-              description: "As notificações já estão funcionando.",
+              description: "As notificações locais já estão funcionando.",
             });
           } else if (newStatus === 'denied') {
             toast({
               title: "Permissão negada anteriormente",
-              description: "Ative as notificações nas configurações do navegador.",
+              description: "Ative as notificações nas configurações do navegador ou dispositivo.",
               variant: "destructive"
             });
           }

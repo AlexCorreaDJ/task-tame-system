@@ -5,8 +5,8 @@ import { Bell, HardDrive, Clock } from "lucide-react";
 export const defaultPermissions: Permission[] = [
   {
     id: 'notifications',
-    name: 'Notificações',
-    description: 'Receber lembretes e alertas de tarefas',
+    name: 'Notificações Locais',
+    description: 'Receber lembretes e alertas de tarefas no dispositivo',
     icon: Bell,
     status: 'unknown',
     isRequired: true
