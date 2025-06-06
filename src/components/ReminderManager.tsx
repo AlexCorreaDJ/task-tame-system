@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Plus, Bell, Clock } from "lucide-react";
 import { useReminders } from "@/hooks/useReminders";
 import { toast } from "@/hooks/use-toast";
-import { NotificationPermissionBanner } from "./reminders/NotificationPermissionBanner";
 import { ReminderForm } from "./reminders/ReminderForm";
 import { ReminderList } from "./reminders/ReminderList";
 
@@ -48,25 +47,6 @@ export const ReminderManager = () => {
     };
   }, []);
 
-  const handleRequestPermission = async () => {
-    console.log('🔔 Solicitando permissão de notificações motivacionais...');
-    const granted = await requestNotificationPermission();
-    setNotificationPermission(granted);
-    
-    if (granted) {
-      toast({
-        title: "🎉 Notificações ativadas!",
-        description: "Agora você receberá lembretes motivacionais para manter seu foco! 🚀",
-      });
-    } else {
-      toast({
-        title: "❌ Permissão negada",
-        description: "Vá nas configurações do Android para permitir notificações.",
-        variant: "destructive"
-      });
-    }
-  };
-
   const handleAddReminder = (reminderData: Parameters<typeof addReminder>[0]) => {
     addReminder(reminderData);
     setShowAddForm(false);
@@ -94,14 +74,6 @@ export const ReminderManager = () => {
               <Plus className="h-4 w-4 mr-2" />
               Novo Lembrete
             </Button>
-          </div>
-          
-          {/* Status da permissão */}
-          <div className="mt-4">
-            <NotificationPermissionBanner 
-              hasPermission={notificationPermission}
-              onRequestPermission={handleRequestPermission}
-            />
           </div>
         </CardHeader>
         
