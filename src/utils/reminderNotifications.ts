@@ -1,115 +1,141 @@
 import {
-  requestLocalNotificationPermission,
-  testLocalNotification,
-  initializeLocalNotifications,
-  isNativePlatform
-} from '@/utils/localNotifications';
-import { playNotificationSound, initializeAudio } from '@/utils/audioNotifications';
-import { toast } from '@/hooks/use-toast';
-import { Reminder } from '@/types/reminder';
+  LocalNotifications,
+  PermissionStatus,
+  LocalNotification,
+  Schedule,
+} from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 
-// Função para mostrar notificação
-export const showNotification = (reminder: Reminder) => {
-  console.log('🔔 Mostrando notificação motivacional:', reminder.title);
-  
-  playNotificationSound();
-
-  if (!isNativePlatform()) {
-    // Estamos em ambiente Web (PWA ou Desktop), mostrar toast simples
-    toast({
-      title: `🔔 ${reminder.title}`,
-      description: reminder.description || 'É hora do seu foco! 🎯',
-    });
-    return;
-  }
-
-  // Se for app nativo, o plugin de notificação local cuidará da exibição
-  console.log('📱 App nativo: notificação será exibida pelo sistema');
+export const isNativePlatform = (): boolean => {
+  return Capacitor.isNativePlatform();
 };
 
-// Verifica lembretes (somente para Web)
-export const checkReminders = (reminders: Reminder[]) => {
-  if (isNativePlatform()) return;
+export const requestLocalNotificationPermission = async (): Promise<boolean> => {
+  const permission: PermissionStatus = await LocalNotifications.requestPermissions();
+  return permission.display === 'granted';
+};
 
-  const now = new Date();
-  const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-  console.log('🕐 Verificando lembretes para:', currentTime);
-  
-  reminders.forEach(reminder => {
-    if (reminder.isActive && reminder.time === currentTime) {
-      showNotification(reminder);
-    }
+export const scheduleLocalNotification = async (
+  notification: LocalNotification,
+  schedule?: Schedule
+): Promise<void> => {
+  await LocalNotifications.schedule({
+    notifications: [
+      {
+        id: notification.id,
+        title: notification.title,
+        body: notification.body,
+        sound: notification.sound || undefined,
+        schedule: schedule || undefined,
+        extra: notification.extra || undefined,
+        smallIcon: notification.smallIcon || undefined,
+        iconColor: notification.iconColor || undefined,
+        group: notification.group || undefined,
+      },
+    ],
   });
 };
 
-// Solicita permissão para notificação
-export const requestNotificationPermission = async () => {
-  console.log('🔔 Solicitando permissão de notificação...');
-  initializeAudio();
-
-  let granted = false;
-
-  if (isNativePlatform()) {
-    granted = await requestLocalNotificationPermission();
-  } else {
-    // Web não precisa de permissão especial para toast
-    granted = true;
-  }
-
-  if (granted && !isNativePlatform()) {
-    toast({
-      title: "🎉 Notificações ativadas!",
-      description: "Você receberá lembretes via toast. Para alertas reais, use o app nativo.",
-    });
-  }
-
-  return granted;
+export const showLocalNotification = async (
+  notification: LocalNotification
+): Promise<void> => {
+  await scheduleLocalNotification(notification);
 };
 
-// Testa notificação local (apenas no app)
-export const testBalloonNotification = async () => {
-  console.log('🧪 Testando notificação local...');
+export const cancelLocalNotification = async (id: number): Promise<void> => {
+  await LocalNotifications.cancel({ notifications: [{ id }] });
+};
 
-  if (!isNativePlatform()) {
-    toast({
-      title: "⚠️ Apenas no app nativo",
-      description: "Notificações locais só funcionam no app Android/iOS instalado",
-      variant: "destructive"
+export const cancelAllLocalNotifications = async (): Promise<void> => {
+  const pending = await LocalNotifications.getPending();
+  if (pending.notifications.length > 0) {
+    await LocalNotifications.cancel({ notifications: pending.notifications });
+  }
+};
+
+export const getScheduledLocalNotifications = async (): Promise<LocalNotification[]> => {
+  const result = await LocalNotifications.getPending();
+  return result.notifications;
+};
+
+export const testBalloonNotification = async (): Promise<boolean> => {
+  try {
+    await showLocalNotification({
+      id: 999,
+      title: "🧪 Teste de Notificação",
+      body: "Esta é uma notificação de teste! 📱✨"
     });
+    return true;
+  } catch (error) {
+    console.error('Erro ao testar notificação:', error);
+    return false;
+  }
+};
+
+export const initializeLocalNotifications = async (): Promise<boolean> => {
+  if (!isNativePlatform()) {
+    console.log('🌐 Não é app nativo, pulando inicialização de notificações locais');
     return false;
   }
 
-  return await testLocalNotification();
+  try {
+    const permission = await requestLocalNotificationPermission();
+    if (permission) {
+      console.log('✅ Notificações locais inicializadas com sucesso');
+      return true;
+    } else {
+      console.log('❌ Permissão de notificação negada');
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Erro ao inicializar notificações locais:', error);
+    return false;
+  }
 };
 
-// Inicia o sistema de lembretes
-export const startReminderSystem = async (reminders: Reminder[]) => {
-  console.log('🚀 Iniciando sistema de lembretes motivacionais...');
-  initializeAudio();
+export const scheduleReminderForToday = async (
+  title: string,
+  body: string,
+  time: string, // Formato HH:MM
+  extra?: any
+): Promise<boolean> => {
+  try {
+    const [hours, minutes] = time.split(':').map(Number);
 
-  if (isNativePlatform()) {
-    console.log('📱 App nativo: configurando notificações locais...');
-    const initialized = await initializeLocalNotifications();
-
-    if (initialized) {
-      toast({
-        title: "🎉 Sistema ativado!",
-        description: "Notificações locais configuradas! 📱🔔",
-      });
+    if (isNaN(hours) || isNaN(minutes)) {
+      throw new Error(`Formato inválido para horário: ${time}`);
     }
 
-    return () => {
-      console.log('⏹️ Sistema de notificações locais não precisa ser parado');
-    };
+    const now = new Date();
+    const scheduleDate = new Date();
+    scheduleDate.setHours(hours, minutes, 0, 0);
+
+    if (scheduleDate <= now) {
+      scheduleDate.setDate(scheduleDate.getDate() + 1);
+    }
+
+    const schedule: Schedule = { at: scheduleDate };
+
+    await scheduleLocalNotification(
+      {
+        id: Date.now(), // Atenção a possíveis ids duplicados em chamadas rápidas
+        title,
+        body,
+        extra,
+      },
+      schedule
+    );
+
+    console.log('✅ Lembrete agendado para:', scheduleDate.toLocaleString());
+    return true;
+  } catch (error) {
+    console.error('❌ Erro ao agendar lembrete:', error);
+    return false;
   }
+};
 
-  // Web: Verificação manual
-  console.log('🌐 App web: usando verificação manual a cada minuto');
-  checkReminders(reminders);
-  const interval = setInterval(() => checkReminders(reminders), 60000);
-
-  return () => {
-    console.log('⏹️ Parando sistema de lembretes...');
-    clearInterval(interval);
-  };
+// NOVA FUNÇÃO ADICIONADA:
+export const startReminderSystem = async (): Promise<void> => {
+  console.log('🚀 Inicializando sistema de lembretes...');
+  await initializeLocalNotifications();
 };

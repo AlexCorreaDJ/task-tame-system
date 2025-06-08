@@ -1,66 +1,79 @@
-
 import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
+// Verifica se está rodando em Android nativo
 export const isAlarmSupported = () => {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
 };
 
-export const createSystemAlarm = async (title: string, time: string, description?: string) => {
+// Pede permissão para notificações
+export const requestNotificationPermission = async () => {
+  const permission = await LocalNotifications.requestPermissions();
+  return permission.display === 'granted';
+};
+
+// Agenda notificação local no horário informado
+export const createSystemAlarm = async (
+  title: string,
+  time: string,
+  description?: string
+) => {
   if (!isAlarmSupported()) {
     console.log('⚠️ Alarmes do sistema só funcionam no app nativo Android');
     return false;
   }
 
+  // Pede permissão para notificação
+  const hasPermission = await requestNotificationPermission();
+  if (!hasPermission) {
+    console.log('⚠️ Permissão para notificações negada');
+    return false;
+  }
+
   try {
-    // Parse do horário
+    // Parse do horário "HH:mm"
     const [hours, minutes] = time.split(':').map(Number);
-    
-    // Cria a data para o alarme
+
+    // Calcula o momento para agendar
     const now = new Date();
     const alarmDate = new Date();
     alarmDate.setHours(hours, minutes, 0, 0);
-    
-    // Se o horário já passou hoje, agenda para amanhã
     if (alarmDate <= now) {
       alarmDate.setDate(alarmDate.getDate() + 1);
     }
 
-    console.log(`⏰ Criando alarme do sistema para: ${alarmDate.toLocaleString()}`);
+    console.log(`⏰ Agendando notificação para: ${alarmDate.toLocaleString()}`);
 
-    // URL do Intent para criar alarme
-    const intentUrl = `intent://alarm?` +
-      `action=android.intent.action.SET_ALARM&` +
-      `android.intent.extra.alarm.HOUR=${hours}&` +
-      `android.intent.extra.alarm.MINUTES=${minutes}&` +
-      `android.intent.extra.alarm.MESSAGE=${encodeURIComponent(`🎯 ${title}`)}&` +
-      `android.intent.extra.alarm.SKIP_UI=false&` +
-      `android.intent.extra.alarm.VIBRATE=true` +
-      `#Intent;scheme=alarm;package=com.google.android.deskclock;end`;
+    // Agenda a notificação
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: new Date().getTime(), // id único
+          title: `🎯 ${title}`,
+          body: description ?? '',
+          schedule: { at: alarmDate },
+          sound: null,
+        },
+      ],
+    });
 
-    // Usa window.open para abrir o intent no ambiente nativo
-    if (Capacitor.isNativePlatform()) {
-      window.open(intentUrl, '_system');
-    } else {
-      console.log('⚠️ Funcionalidade disponível apenas no app nativo');
-      return false;
-    }
-
-    console.log('✅ Alarme criado com sucesso no sistema!');
+    console.log('✅ Notificação agendada com sucesso!');
     return true;
   } catch (error) {
-    console.error('❌ Erro ao criar alarme do sistema:', error);
+    console.error('❌ Erro ao agendar notificação:', error);
     return false;
   }
 };
 
+// Método antigo para abrir o app relógio via Intent, caso queira manter
 export const createAlarmViaIntent = async (title: string, time: string) => {
   if (!isAlarmSupported()) return false;
 
   try {
     const [hours, minutes] = time.split(':').map(Number);
-    
-    // URL do Intent para criar alarme
-    const intentUrl = `intent://alarm?` +
+
+    const intentUrl =
+      `intent://alarm?` +
       `action=android.intent.action.SET_ALARM&` +
       `android.intent.extra.alarm.HOUR=${hours}&` +
       `android.intent.extra.alarm.MINUTES=${minutes}&` +
@@ -69,9 +82,8 @@ export const createAlarmViaIntent = async (title: string, time: string) => {
       `android.intent.extra.alarm.VIBRATE=true` +
       `#Intent;scheme=alarm;package=com.google.android.deskclock;end`;
 
-    // Abre o app de alarmes
     window.open(intentUrl, '_system');
-    
+
     console.log('✅ Redirecionado para o app de alarmes do Android');
     return true;
   } catch (error) {
