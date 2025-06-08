@@ -1,4 +1,3 @@
-
 import {
   scheduleReminderForToday,
   isNativePlatform,
@@ -33,6 +32,9 @@ export const scheduleReminder = async (reminder: Reminder): Promise<Reminder> =>
   if (isNativePlatform() && reminder.isActive) {
     console.log('📱 Agendando notificação local...');
     
+    // Gera um ID único para a notificação local
+    const localNotificationId = Date.now();
+    
     const success = await scheduleReminderForToday(
       reminder.title,
       reminder.description || 'É hora do seu foco! 🚀',
@@ -40,14 +42,15 @@ export const scheduleReminder = async (reminder: Reminder): Promise<Reminder> =>
       {
         reminderType: reminder.type,
         reminderId: reminder.id
-      }
+      },
+      localNotificationId
     );
     
     if (success) {
-      // Armazena o ID da notificação local (simplificado - usar timestamp)
+      // Retorna o lembrete com o ID da notificação local
       const updatedReminder = {
         ...reminder,
-        localNotificationId: Date.now()
+        localNotificationId
       };
       
       if (!reminder.createSystemAlarm) {
@@ -90,6 +93,8 @@ export const rescheduleReminder = async (reminder: Reminder, updates: Partial<Re
     if (updates.isActive !== false) {
       const updatedReminder = { ...reminder, ...updates } as Reminder;
       if (updatedReminder.isActive) {
+        const newLocalNotificationId = Date.now();
+        
         await scheduleReminderForToday(
           updatedReminder.title,
           updatedReminder.description || 'É hora do seu foco! 🚀',
@@ -97,8 +102,12 @@ export const rescheduleReminder = async (reminder: Reminder, updates: Partial<Re
           {
             reminderType: updatedReminder.type,
             reminderId: updatedReminder.id
-          }
+          },
+          newLocalNotificationId
         );
+        
+        // Atualiza o ID da notificação local
+        updates.localNotificationId = newLocalNotificationId;
       }
     }
   }

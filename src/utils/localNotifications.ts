@@ -59,7 +59,7 @@ export const getScheduledLocalNotifications = async (): Promise<LocalNotificatio
   return result.notifications;
 };
 
-export const testLocalNotification = async (): Promise<boolean> => {
+export const testBalloonNotification = async (): Promise<boolean> => {
   try {
     await showLocalNotification({
       id: 999,
@@ -99,7 +99,8 @@ export const scheduleReminderForToday = async (
   title: string,
   body: string,
   time: string, // Formato HH:MM
-  extra?: any
+  extra?: any,
+  notificationId?: number // Parâmetro opcional para ID da notificação
 ): Promise<boolean> => {
   try {
     const [hours, minutes] = time.split(':').map(Number);
@@ -120,7 +121,7 @@ export const scheduleReminderForToday = async (
 
     await scheduleLocalNotification(
       {
-        id: Date.now(), // Atenção a possíveis ids duplicados em chamadas rápidas
+        id: notificationId || Date.now(), // Usa o ID fornecido ou gera um novo
         title,
         body,
         extra,

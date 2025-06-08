@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import { isNativeAndroid } from "@/utils/firebaseNotifications";
 export const ReminderManager = () => {
   const { 
     reminders, 
+    permissionGranted,
     addReminder, 
     deleteReminder, 
     toggleReminder,
@@ -152,7 +152,7 @@ export const ReminderManager = () => {
         <CardContent>
           <ReminderList 
             reminders={reminders}
-            notificationPermission={true}
+            notificationPermission={permissionGranted}
             onToggleReminder={toggleReminder}
             onToggleBalloonStyle={isNativeApp ? toggleBalloonStyle : undefined}
             onDeleteReminder={deleteReminder}
