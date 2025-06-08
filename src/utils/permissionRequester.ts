@@ -1,22 +1,24 @@
 import { Permission } from "@/types/permissions";
 import { toast } from "@/hooks/use-toast";
-import { 
-  requestAndroidNotificationPermission, 
-  isNativeAndroidApp, 
-  isWebAndroidApp 
+import {
+  requestAndroidNotificationPermission,
+  isNativeAndroidApp,
+  isWebAndroidApp
 } from './androidNotifications';
+
+// Função delay para facilitar o uso de pause
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const requestPermission = async (permissionId: string): Promise<Permission['status']> => {
   console.log(`🔔 Solicitando permissão: ${permissionId}`);
-  
+
   try {
     let newStatus: Permission['status'] = 'denied';
 
     switch (permissionId) {
       case 'notifications':
         console.log('📱 Solicitando permissão de notificações...');
-        
-        // Log da plataforma
+
         if (isNativeAndroidApp()) {
           console.log('📱 Usando API nativa do Capacitor para Android');
         } else if (isWebAndroidApp()) {
@@ -24,12 +26,12 @@ export const requestPermission = async (permissionId: string): Promise<Permissio
         } else {
           console.log('💻 Usando Web Notification API para desktop/web');
         }
-        
+
         const granted = await requestAndroidNotificationPermission();
-        
+
         if (granted) {
           newStatus = 'granted';
-          
+
           if (isNativeAndroidApp()) {
             toast({
               title: "🎉 Sucesso no Android!",
@@ -43,7 +45,7 @@ export const requestPermission = async (permissionId: string): Promise<Permissio
           }
         } else {
           newStatus = 'denied';
-          
+
           if (isNativeAndroidApp()) {
             toast({
               title: "⚠️ Permissão necessária",
@@ -90,7 +92,7 @@ export const requestPermission = async (permissionId: string): Promise<Permissio
         if ('wakeLock' in navigator) {
           try {
             const wakeLock = await (navigator as any).wakeLock.request('screen');
-            await wakeLock.release();
+            // Não liberar imediatamente, deixar app controlar o release
             newStatus = 'granted';
             toast({
               title: "✅ Controle de tela disponível!",
@@ -114,6 +116,10 @@ export const requestPermission = async (permissionId: string): Promise<Permissio
           });
         }
         break;
+
+      default:
+        console.warn(`⚠️ Permissão não tratada: ${permissionId}`);
+        break;
     }
 
     return newStatus;
@@ -134,25 +140,26 @@ export const requestAllPermissions = async (
   onPermissionUpdate: (permissionId: string, status: Permission['status']) => void
 ) => {
   console.log('🔔 Solicitando todas as permissões...');
-  
+
   toast({
     title: "📱 Configurando aplicativo",
     description: "Vamos solicitar as permissões necessárias para o funcionamento do app.",
   });
-  
+
   for (const permission of permissions) {
     if (permission.status !== 'granted' && permission.isRequired) {
       console.log(`🔄 Processando permissão: ${permission.id}`);
       const newStatus = await requestPermission(permission.id);
+      permission.status = newStatus;  // Atualiza o status no array
       onPermissionUpdate(permission.id, newStatus);
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await delay(2000);
     }
   }
-  
+
   const allGranted = permissions
     .filter(p => p.isRequired)
     .every(p => p.status === 'granted');
-    
+
   if (allGranted) {
     toast({
       title: "🎉 App configurado!",

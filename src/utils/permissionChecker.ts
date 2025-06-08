@@ -6,8 +6,7 @@ export const checkPermission = async (permissionId: string): Promise<Permission[
     switch (permissionId) {
       case 'notifications':
         console.log('🔍 Verificando permissão de notificações...');
-        
-        // Log da plataforma detectada
+
         if (isNativeAndroidApp()) {
           console.log('📱 Verificando permissão no app nativo Android...');
         } else if (isWebAndroidApp()) {
@@ -15,10 +14,9 @@ export const checkPermission = async (permissionId: string): Promise<Permission[
         } else {
           console.log('💻 Verificando permissão na plataforma web/desktop...');
         }
-        
+
         const status = await checkAndroidNotificationPermission();
         console.log('📋 Status da permissão de notificações:', status);
-        
         return status;
 
       case 'storage':
@@ -40,6 +38,8 @@ export const checkPermission = async (permissionId: string): Promise<Permission[
         if ('wakeLock' in navigator) {
           try {
             const wakeLock = await (navigator as any).wakeLock.request('screen');
+            // Se quiser manter a tela ativa, não libere imediatamente.
+            // Aqui apenas testamos a disponibilidade, por isso liberamos.
             await wakeLock.release();
             console.log('✅ Wake Lock disponível');
             return 'granted';
@@ -52,7 +52,9 @@ export const checkPermission = async (permissionId: string): Promise<Permission[
         return 'denied';
 
       default:
-        return 'unknown';
+        console.warn(`⚠️ Permissão desconhecida: ${permissionId}`);
+        // Retornar 'denied' para manter o tipo correto
+        return 'denied';
     }
   } catch (error) {
     console.error(`❌ Erro ao verificar permissão ${permissionId}:`, error);
