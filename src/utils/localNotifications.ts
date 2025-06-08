@@ -39,6 +39,7 @@ export const scheduleLocalNotification = async (
 export const showLocalNotification = async (
   notification: LocalNotification
 ): Promise<void> => {
+  // Agendar notificação para disparar imediatamente (sem schedule)
   await scheduleLocalNotification(notification);
 };
 
@@ -119,7 +120,7 @@ export const scheduleReminderForToday = async (
 
     await scheduleLocalNotification(
       {
-        id: Date.now(),
+        id: Date.now(), // Atenção a possíveis ids duplicados em chamadas rápidas
         title,
         body,
         extra,
